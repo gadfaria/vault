@@ -196,5 +196,5 @@ export function useBills() {
     [save],
   )
 
-  return { loading, bills: live.bills, monthRows, history, saveBill, endBill, deleteBill, savePayment, undoPayment, savePurchase, deletePurchase }
+  return { loading, bills: live.bills, purchases: live.purchases, monthRows, history, saveBill, endBill, deleteBill, savePayment, undoPayment, savePurchase, deletePurchase }
 }

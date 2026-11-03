@@ -165,6 +165,16 @@ export function firstStatementMonth(card: Pick<Bill, 'dueDay' | 'card'>, date: s
   return card.dueDay > closing ? closes : shiftMonth(closes, 1)
 }
 
+/**
+ * The month most of a statement's purchases were made in: it covers the days up to the one before
+ * closing (the due day when there is none), so the closing month if that is past mid-month, else the one before.
+ */
+export function statementSpendMonth(card: Pick<Bill, 'dueDay' | 'card'>, month: string): string {
+  const closing = card.card?.closingDay ?? 0
+  const closes = !closing || card.dueDay > closing ? month : shiftMonth(month, -1)
+  return (closing || card.dueDay) - 1 >= 15 ? closes : shiftMonth(closes, -1)
+}
+
 /** The purchase's installment in a statement, numbered from 1, or null if it has none there. The first one takes the leftover cents. */
 export function installmentIn(
   purchase: Pick<CardPurchase, 'amount' | 'installments' | 'firstMonth'>,

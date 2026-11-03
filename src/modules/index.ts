@@ -1,5 +1,5 @@
 import type { ComponentType } from 'react'
-import { CreditCardIcon, RepeatIcon, type LucideIcon } from 'lucide-react'
+import { ChartPieIcon, CreditCardIcon, RepeatIcon, type LucideIcon } from 'lucide-react'
 import { bills } from './bills'
 import { documents } from './documents'
 import { finance } from './finance'
@@ -40,4 +40,5 @@ export interface SubPage {
 export const SUB_PAGES: SubPage[] = [
   { name: 'Assinaturas', href: '#/bills/subscriptions', icon: RepeatIcon, collection: 'subscriptions' },
   { name: 'Cartões', href: '#/bills/cards', icon: CreditCardIcon },
+  { name: 'Resumo do mês', href: '#/bills/summary', icon: ChartPieIcon },
 ]

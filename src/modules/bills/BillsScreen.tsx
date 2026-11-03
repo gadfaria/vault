@@ -30,6 +30,7 @@ import { BillHistoryDialog } from './BillHistoryDialog'
 import { CardExpenses } from './CardExpenses'
 import { CardFormDialog } from './CardFormDialog'
 import { CardsView } from './CardsView'
+import { MonthSummary } from './MonthSummary'
 import { PaymentDialog } from './PaymentDialog'
 import { PurchaseFormDialog } from './PurchaseFormDialog'
 import { BILL_CATEGORIES, BILL_STATUS_LABELS, billFrequency, cardLabel, FREQUENCIES, isCard, PAYMENT_METHODS, type Bill, type BillStatus, type CardPurchase } from './types'
@@ -54,7 +55,7 @@ function StatusBadge({ status }: { status: BillStatus }) {
  * Contas and Cartões share this screen (month, dialogs): a card is a bill of category creditCard.
  * `nav` is the Contas | Assinaturas | Cartões switcher, shown above the page content.
  */
-export function BillsScreen({ nav, view = 'bills' }: { nav?: React.ReactNode; view?: 'bills' | 'cards' }) {
+export function BillsScreen({ nav, view = 'bills' }: { nav?: React.ReactNode; view?: 'bills' | 'cards' | 'summary' }) {
   const bills = useBills()
   const subs = useSubscriptions()
   const [cardDialog, setCardDialog] = useState<{ card?: Bill } | null>(null)
@@ -68,6 +69,8 @@ export function BillsScreen({ nav, view = 'bills' }: { nav?: React.ReactNode; vi
   const [selectedCardId, setSelectedCardId] = useState<string | null>(null)
 
   const rows = bills.monthRows(month, subs.all)
+  // Card statements live in Cartões and Resumo, not in the bills list
+  const billRows = rows.filter((row) => !isCard(row.bill))
   const selectedCard = view === 'cards' ? rows.find((row) => isCard(row.bill) && row.bill.id === selectedCardId) : undefined
   const isCurrent = month === currentMonth()
   const editBill = (bill: Bill) => (isCard(bill) ? setCardDialog({ card: bill }) : setBillDialog({ bill }))
@@ -90,6 +93,8 @@ export function BillsScreen({ nav, view = 'bills' }: { nav?: React.ReactNode; vi
             <span className="sm:hidden">Novo</span>
           </Button>
         </SiteHeader>
+      ) : view === 'summary' ? (
+        <SiteHeader title={[{ label: 'Contas', href: '#/bills' }, { label: 'Resumo' }]} />
       ) : (
         <SiteHeader title="Contas">
           <Button size="sm" onClick={() => setBillDialog({})} disabled={bills.loading}>
@@ -138,15 +143,24 @@ export function BillsScreen({ nav, view = 'bills' }: { nav?: React.ReactNode; vi
             onAddPurchase={(row) => setPurchaseDialog({ card: row.bill })}
             onSelect={(row) => setSelectedCardId(row.bill.id)}
           />
+        ) : view === 'summary' ? (
+          <MonthSummary
+            loading={bills.loading || subs.loading}
+            monthRows={(m) => bills.monthRows(m, subs.all)}
+            bills={bills.bills}
+            purchases={bills.purchases}
+            subscriptions={subs.all}
+            month={month}
+          />
         ) : (
           <>
-            <SummaryCards loading={bills.loading} rows={rows} />
+            <SummaryCards loading={bills.loading} rows={billRows} />
 
             <div className="px-4 lg:px-6">
               <BillsTable
                 loading={bills.loading}
-                rows={rows}
-                hasBills={bills.bills.length > 0}
+                rows={billRows}
+                hasBills={bills.bills.some((bill) => !isCard(bill))}
                 onPay={(row) => setPaymentRow({ row, markPaid: true })}
                 onEnter={(row) => setPaymentRow({ row, markPaid: false })}
                 onUndo={(row) => row.payment && bills.undoPayment(row.payment)}
@@ -382,7 +396,7 @@ function BillsTable({
           ) : rows.length === 0 ? (
             <TableRow>
               <TableCell colSpan={5} className="h-32 text-center text-muted-foreground">
-                {hasBills ? 'Nenhuma conta neste mês.' : 'Nenhuma conta ainda. Adicione luz, água, aluguel, fatura…'}
+                {hasBills ? 'Nenhuma conta neste mês.' : 'Nenhuma conta ainda. Adicione luz, água, aluguel…'}
               </TableCell>
             </TableRow>
           ) : (

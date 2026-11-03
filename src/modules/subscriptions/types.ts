@@ -55,6 +55,17 @@ export function monthlyCost(subscription: Pick<Subscription, 'amount' | 'cycle'>
   return subscription.amount / CYCLES[subscription.cycle].months
 }
 
+/** The subscription's charges in a YYYY-MM month, as YYYY-MM-DD. Stops at its cancellation. */
+export function chargesInMonth(subscription: Pick<Subscription, 'startDate' | 'cycle' | 'cancelledAt'>, month: string): string[] {
+  const step = CYCLES[subscription.cycle].months
+  const [sy, sm] = subscription.startDate.split('-').map(Number)
+  const [my, mm] = month.split('-').map(Number)
+  const offset = (my - sy) * 12 + (mm - sm)
+  if (offset < 0 || offset % step !== 0) return []
+  const date = addMonths(subscription.startDate, offset)
+  return subscription.cancelledAt && date > subscription.cancelledAt ? [] : [date]
+}
+
 /** The first charge date from today on (today included). */
 export function nextCharge(subscription: Pick<Subscription, 'startDate' | 'cycle'>): string {
   const now = today()
