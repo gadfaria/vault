@@ -1,6 +1,7 @@
 import type { LucideIcon } from 'lucide-react'
 import { BellIcon, CarIcon, HeartPulseIcon, IdCardIcon, LandmarkIcon, PiggyBankIcon, ReceiptTextIcon, RepeatIcon } from 'lucide-react'
 import { daysUntil, formatDate, formatMoney } from '@/lib/format'
+import { billHref } from '@/modules/bills/types'
 import type { MonthRow } from '@/modules/bills/useBills'
 import { documentLabel } from '@/modules/documents/types'
 import type { DocumentRow } from '@/modules/documents/useDocuments'
@@ -70,7 +71,7 @@ export function collectEvents(sources: EventSources): HomeEvent[] {
       title: `${row.status === 'overdue' ? 'Conta atrasada' : 'Conta a vencer'}: ${row.bill.name}`,
       detail: `${row.status === 'overdue' ? 'Venceu' : 'Vence'} em ${formatDate(row.dueDate)}${amount}`,
       meta: row.amount ? formatMoney(row.amount) : '',
-      href: '#/bills',
+      href: billHref(row.bill),
       attention: row.status === 'overdue' || days <= SOON_DAYS,
     })
   }

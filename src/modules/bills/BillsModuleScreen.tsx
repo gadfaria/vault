@@ -6,15 +6,15 @@ import { BillsScreen } from './BillsScreen'
 type Section = 'bills' | 'subscriptions' | 'cards' | 'summary'
 
 const SECTIONS: Record<Section, { label: string; href: string }> = {
-  bills: { label: 'Contas', href: '#/bills' },
+  summary: { label: 'Resumo', href: '#/bills' },
+  bills: { label: 'Contas', href: '#/bills/list' },
   subscriptions: { label: 'Assinaturas', href: '#/bills/subscriptions' },
   cards: { label: 'Cartões', href: '#/bills/cards' },
-  summary: { label: 'Resumo', href: '#/bills/summary' },
 }
 
 /** Bills, subscriptions, cards and the month summary share one sidebar entry; cards are bills, subscriptions keep their own file. */
 export function BillsModuleScreen({ path }: ModuleScreenProps) {
-  const section: Section = path[0] === 'subscriptions' || path[0] === 'cards' || path[0] === 'summary' ? path[0] : 'bills'
+  const section: Section = path[0] === 'subscriptions' || path[0] === 'cards' ? path[0] : path[0] === 'list' ? 'bills' : 'summary'
   const nav = (
     <div className="px-4 lg:px-6">
       <Tabs value={section} onValueChange={(value) => window.location.assign(SECTIONS[value as Section].href)}>

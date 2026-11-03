@@ -1,6 +1,7 @@
 import type { LucideIcon } from 'lucide-react'
 import { BellIcon, CarIcon, HeartPulseIcon, IdCardIcon, PiggyBankIcon, ReceiptTextIcon, RepeatIcon } from 'lucide-react'
 import { addDays, addMonths, formatMoney, parseDate, today, toIsoDate } from '@/lib/format'
+import { billHref } from '@/modules/bills/types'
 import type { MonthRow } from '@/modules/bills/useBills'
 import { documentLabel } from '@/modules/documents/types'
 import type { DocumentRow } from '@/modules/documents/useDocuments'
@@ -86,7 +87,7 @@ export function collectCalendar(from: string, to: string, sources: CalendarSourc
       until: row.dueDate,
       title: row.bill.name,
       meta: row.amount ? formatMoney(row.amount) : '',
-      href: '#/bills',
+      href: billHref(row.bill),
       done: row.status === 'paid',
       late: row.status === 'overdue',
     })

@@ -74,6 +74,11 @@ export function isCard(bill: Pick<Bill, 'category'>): boolean {
   return bill.category === 'creditCard'
 }
 
+/** Where a bill is listed: cards in Cartões, the others in Contas. */
+export function billHref(bill: Pick<Bill, 'category'>): string {
+  return isCard(bill) ? '#/bills/cards' : '#/bills/list'
+}
+
 /** "Nubank •••• 1234" */
 export function cardLabel(bill: Pick<Bill, 'card'>): string {
   const card = bill.card

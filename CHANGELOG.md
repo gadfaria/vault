@@ -8,10 +8,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 ## [0.4.0] - 2026-11-03
 
 ### Added
-- Month summary (Contas › Resumo, `#/bills/summary`): everything spent in the month in one place: bills, card purchases and subscriptions. Shows the total, the share of each, a breakdown by category (bill and purchase categories together) and a table of every expense with where it was paid. Card purchases count in the month they were made (installments one per month from the purchase date), and the part of a statement not covered by its purchases shows as "Gastos não lançados" in the month most of that statement was spent.
+- Month summary (Contas › Resumo, `#/bills`): everything spent in the month in one place: bills, card purchases and subscriptions. Shows the total, the share of each, a breakdown by category (bill and purchase categories together) and a table of every expense with where it was paid. Card purchases count in the month they were made (installments one per month from the purchase date), and the part of a statement not covered by its purchases shows as "Gastos não lançados" in the month most of that statement was spent.
 
 ### Changed
-- Contas no longer lists card statements or counts them in its totals; they stay in Cartões (to pay them) and in Resumo.
+- Resumo is the first tab and what Contas opens (`#/bills`); the bills list moved to `#/bills/list`. Bills on the home calendar and in search open Contas or Cartões.
+- Contas (now `#/bills/list`) no longer lists card statements or counts them in its totals; they stay in Cartões (to pay them) and in Resumo.
 
 ## [0.3.0] - 2026-11-01
 

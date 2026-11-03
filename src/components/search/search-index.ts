@@ -16,7 +16,7 @@ import {
   WrenchIcon,
 } from "lucide-react"
 import { formatDate, formatMoney } from "@/lib/format"
-import { billFrequency, cardLabel, isCard, scheduleLabel, type Bill } from "@/modules/bills/types"
+import { billFrequency, billHref, cardLabel, isCard, scheduleLabel, type Bill } from "@/modules/bills/types"
 import { DOCUMENT_TYPES, documentLabel, formatAddress, type PersonalDocument, type PersonalProfile } from "@/modules/documents/types"
 import { ACCOUNT_TYPES, INVESTMENT_KINDS, accountLabel, type Investment } from "@/modules/finance/types"
 import type { InstitutionGroup } from "@/modules/finance/useFinance"
@@ -134,7 +134,7 @@ export function buildSearchIndex(s: SearchSources): SearchItem[] {
       keywords: isCard(bill)
         ? [bill.notes, "cartão", "fatura", "crédito", bill.card?.bank ?? "", bill.card?.lastDigits ?? ""]
         : [bill.notes, "conta"],
-      href: isCard(bill) ? "#/bills/cards" : "#/bills",
+      href: billHref(bill),
     })
   }
 
