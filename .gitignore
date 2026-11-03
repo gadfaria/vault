@@ -26,3 +26,4 @@ dist-ssr
 # Camera bridge (holds the camera password)
 bridge/go2rtc.yaml
 bridge/go2rtc.log
+bridge/ptz.log

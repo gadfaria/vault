@@ -59,8 +59,30 @@ Check it: `curl -I https://cam.<domain>/api/streams` must redirect to `cloudflar
 Moving to another machine: install go2rtc and the connector with the same token there, and stop
 them here. The address doesn't change, so the Vault needs nothing.
 
-## 3. Vault
+## 3. Pan/tilt (optional)
 
-Câmeras › Nova câmera: bridge address `https://cam.<domain>`, stream `living-room`.
+For cameras that move (ONVIF PTZ), `ptz-server.mjs` (Node, no dependencies) serves a player with
+arrows at `/ptz/?src=<stream>` and turns presses into ONVIF moves. It reads the camera credentials
+from `go2rtc.yaml`, listens on `127.0.0.1:1985`, and accepts only move and stop, with a capped speed;
+a move stops by itself after 1 s unless the page renews it. Every other request (player files, the
+video socket) is passed through to go2rtc, whose `allow_paths` still applies.
+
+```bash
+node ptz-server.mjs   # try it; then as a service (macOS):
+sed -e "s|NODE_BIN|$(which node)|" -e "s|BRIDGE_DIR|$PWD|g" com.vault.ptz.plist \
+  > ~/Library/LaunchAgents/com.vault.ptz.plist
+launchctl load ~/Library/LaunchAgents/com.vault.ptz.plist
+```
+
+In the tunnel, point `cam.<domain>` at HTTP (not HTTPS) `localhost:1985` instead of 1984. A
+separate `ptz/*` route works too, but only listed **above** the general one (routes match top to
+bottom). Either way it sits behind the same Access application.
+
+Restart it after editing `go2rtc.yaml` (`launchctl kickstart -k gui/$(id -u)/com.vault.ptz`).
+
+## 4. Vault
+
+Câmeras › Nova câmera: bridge address `https://cam.<domain>`, stream `living-room`, and
+"Tem controle de movimento" for a camera that moves.
 The first time, use "Abrir em nova aba" to log in to Access; after that the player loads inside
 the Vault.

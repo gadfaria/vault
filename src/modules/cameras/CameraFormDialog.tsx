@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from 'react'
 import { Field } from '@/components/form-field'
 import { Button } from '@/components/ui/button'
+import { Checkbox } from '@/components/ui/checkbox'
 import {
   Dialog,
   DialogContent,
@@ -10,6 +11,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 import type { Camera } from './types'
 import type { CameraInput } from './useCameras'
 
@@ -38,10 +40,11 @@ function CameraForm({ camera, onSubmit, onDelete, onOpenChange }: CameraFormDial
     name: camera?.name ?? '',
     bridgeUrl: camera?.bridgeUrl ?? '',
     stream: camera?.stream ?? '',
+    ptz: camera?.ptz ?? false,
   })
   const [pending, setPending] = useState(false)
 
-  const set = (key: keyof CameraInput) => (e: { target: { value: string } }) =>
+  const set = (key: 'name' | 'bridgeUrl' | 'stream') => (e: { target: { value: string } }) =>
     setValues((v) => ({ ...v, [key]: e.target.value }))
   // The Vault is served over HTTPS, so a plain-http bridge would be blocked as mixed content (localhost aside).
   const validUrl = /^(https:\/\/|http:\/\/(localhost|127\.0\.0\.1)(:\d+)?(\/|$))\S*$/.test(values.bridgeUrl.trim())
@@ -55,6 +58,7 @@ function CameraForm({ camera, onSubmit, onDelete, onOpenChange }: CameraFormDial
       name: values.name.trim(),
       bridgeUrl: values.bridgeUrl.trim().replace(/\/+$/, ''),
       stream: values.stream.trim(),
+      ptz: values.ptz,
     })
     setPending(false)
     if (ok) onOpenChange(false)
@@ -85,6 +89,14 @@ function CameraForm({ camera, onSubmit, onDelete, onOpenChange }: CameraFormDial
         <Field label="Stream" id="stream">
           <Input id="stream" value={values.stream} onChange={set('stream')} placeholder="Ex.: sala" />
         </Field>
+        <div className="flex items-center gap-3">
+          <Checkbox
+            id="ptz"
+            checked={values.ptz}
+            onCheckedChange={(v) => setValues((s) => ({ ...s, ptz: v === true }))}
+          />
+          <Label htmlFor="ptz">Tem controle de movimento (setas no vídeo)</Label>
+        </div>
       </div>
 
       <DialogFooter className="sm:justify-between">

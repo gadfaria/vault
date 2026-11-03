@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!-- macOS LaunchAgent: starts the PTZ server at login and restarts it if it stops. Paths are filled in by the README's install command. -->
+<plist version="1.0">
+<dict>
+  <key>Label</key>
+  <string>com.vault.ptz</string>
+  <key>ProgramArguments</key>
+  <array>
+    <string>NODE_BIN</string>
+    <string>BRIDGE_DIR/ptz-server.mjs</string>
+  </array>
+  <key>RunAtLoad</key>
+  <true/>
+  <key>KeepAlive</key>
+  <true/>
+  <key>StandardOutPath</key>
+  <string>BRIDGE_DIR/ptz.log</string>
+  <key>StandardErrorPath</key>
+  <string>BRIDGE_DIR/ptz.log</string>
+</dict>
+</plist>

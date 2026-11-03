@@ -10,14 +10,17 @@ export interface Camera extends Syncable {
   bridgeUrl: string
   /** Stream name in the bridge's go2rtc.yaml */
   stream: string
+  /** Pan/tilt through the bridge's PTZ server (bridge/ptz-server.mjs). Missing on cameras saved before it existed. */
+  ptz?: boolean
 }
 
 export type CamerasData = {
   cameras: Camera[]
 }
 
-/** go2rtc's own player page, which picks WebRTC or MSE on its own. */
-export function playerUrl(camera: Pick<Camera, 'bridgeUrl' | 'stream'>): string {
+/** go2rtc's player (WebRTC or MSE, picked on its own), or the bridge's player with arrows when the camera moves. */
+export function playerUrl(camera: Pick<Camera, 'bridgeUrl' | 'stream' | 'ptz'>): string {
   const base = camera.bridgeUrl.replace(/\/+$/, '')
-  return `${base}/stream.html?src=${encodeURIComponent(camera.stream)}`
+  const page = camera.ptz ? 'ptz/' : 'stream.html'
+  return `${base}/${page}?src=${encodeURIComponent(camera.stream)}`
 }
