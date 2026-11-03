@@ -5,6 +5,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Added
+- **Cameras** module: live view of home cameras inside the Vault, through a go2rtc bridge at home published with Cloudflare Tunnel + Access. Setup in `bridge/README.md`; the camera password stays on the bridge, Drive keeps only the bridge address and stream name.
+
 ## [0.4.0] - 2026-11-03
 
 ### Added

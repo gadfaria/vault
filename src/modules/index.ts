@@ -1,6 +1,7 @@
 import type { ComponentType } from 'react'
 import { CreditCardIcon, ListIcon, RepeatIcon, type LucideIcon } from 'lucide-react'
 import { bills } from './bills'
+import { cameras } from './cameras'
 import { documents } from './documents'
 import { finance } from './finance'
 import { health } from './health'
@@ -26,7 +27,7 @@ export interface VaultModule {
  * Every area of the vault, in sidebar order; the first one is the landing page.
  * To add one, create src/modules/<id>/ and register it here.
  */
-export const MODULES: VaultModule[] = [home, reminders, notes, finance, bills, vehicles, documents, health]
+export const MODULES: VaultModule[] = [home, reminders, notes, finance, bills, vehicles, documents, health, cameras]
 
 /** A page inside a module that keeps its own collection file, e.g. Assinaturas under Contas. */
 export interface SubPage {
