@@ -6,6 +6,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 ## [Unreleased]
 
 ### Changed
+- More spending categories, shared by card purchases and bills: Supermercado, Comida, Transporte, Carro, Casa, Pet, Saúde, Educação, Lazer, Viagem, Roupas, Beleza e cuidados, Presentes, Serviços, Compras and Outros. The bill form groups them under "Gastos", after "Contas da casa" (Aluguel, Luz…), so a one-off Pix purchase added in Contas can be filed as Pet or Supermercado and shows that way in Resumo.
 - Cartões opens on each card's open statement (the one today's purchases go to, which changes on the closing day), titled "Faturas abertas"; the arrows still browse by month and "Fatura atual" comes back. The card marks it "Fatura aberta".
 - A closed statement not yet paid shows on its card above the open one, with its amount, due date and a Pagar button, until it is marked paid.
 

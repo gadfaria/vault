@@ -10,7 +10,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
 import { currentMonth, formatMoneyInput, parseMoney } from '@/lib/format'
 import {
@@ -18,6 +18,7 @@ import {
   billFrequency,
   FREQUENCIES,
   PAYMENT_METHODS,
+  PURCHASE_CATEGORIES,
   type Bill,
   type BillCategory,
   type BillFrequency,
@@ -96,14 +97,25 @@ function BillForm({ bill, onSubmit, onOpenChange, onDelete }: BillFormDialogProp
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              {/* Credit cards have their own form in Cartões; an old bill already in this category keeps it. */}
-              {Object.entries(BILL_CATEGORIES)
-                .filter(([value]) => value !== 'creditCard' || bill?.category === 'creditCard')
-                .map(([value, label]) => (
+              <SelectGroup>
+                <SelectLabel>Contas da casa</SelectLabel>
+                {/* Credit cards have their own form in Cartões; an old bill already in this category keeps it. */}
+                {Object.entries(BILL_CATEGORIES)
+                  .filter(([value]) => !(value in PURCHASE_CATEGORIES) && (value !== 'creditCard' || bill?.category === 'creditCard'))
+                  .map(([value, label]) => (
+                    <SelectItem key={value} value={value}>
+                      {label}
+                    </SelectItem>
+                  ))}
+              </SelectGroup>
+              <SelectGroup>
+                <SelectLabel>Gastos</SelectLabel>
+                {Object.entries(PURCHASE_CATEGORIES).map(([value, label]) => (
                   <SelectItem key={value} value={value}>
                     {label}
                   </SelectItem>
                 ))}
+              </SelectGroup>
             </SelectContent>
           </Select>
         </Field>

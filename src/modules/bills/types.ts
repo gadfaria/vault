@@ -2,6 +2,29 @@ import type { Attachment, Syncable } from '@/domain/types'
 import { addMonths, dayOfMonth, parseDate, shiftMonth } from '@/lib/format'
 import { CYCLES, type Subscription } from '../subscriptions/types'
 
+/** What money is spent on: card purchases use these, and so can bills (e.g. a one-off Pix purchase). */
+export const PURCHASE_CATEGORIES = {
+  groceries: 'Supermercado',
+  food: 'Comida',
+  transport: 'Transporte',
+  car: 'Carro',
+  home: 'Casa',
+  pet: 'Pet',
+  health: 'Saúde',
+  education: 'Educação',
+  leisure: 'Lazer',
+  travel: 'Viagem',
+  clothing: 'Roupas',
+  beauty: 'Beleza e cuidados',
+  gifts: 'Presentes',
+  services: 'Serviços',
+  shopping: 'Compras',
+  other: 'Outros',
+} as const
+
+export type PurchaseCategory = keyof typeof PURCHASE_CATEGORIES
+
+/** Household bills first, then every purchase category. */
 export const BILL_CATEGORIES = {
   rent: 'Aluguel',
   condo: 'Condomínio',
@@ -11,7 +34,7 @@ export const BILL_CATEGORIES = {
   internet: 'Internet e telefone',
   creditCard: 'Fatura do cartão',
   tax: 'Impostos e taxas',
-  other: 'Outros',
+  ...PURCHASE_CATEGORIES,
 } as const
 
 export type BillCategory = keyof typeof BILL_CATEGORIES
@@ -100,20 +123,6 @@ export interface BillPayment extends Syncable {
   notes: string
   attachments: Attachment[]
 }
-
-export const PURCHASE_CATEGORIES = {
-  car: 'Carro',
-  food: 'Comida',
-  pet: 'Pet',
-  home: 'Casa',
-  health: 'Saúde',
-  leisure: 'Lazer',
-  travel: 'Viagem',
-  shopping: 'Compras',
-  other: 'Outros',
-} as const
-
-export type PurchaseCategory = keyof typeof PURCHASE_CATEGORIES
 
 /** A purchase charged to a card, in one statement or split over several. */
 export interface CardPurchase extends Syncable {
