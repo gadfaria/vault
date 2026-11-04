@@ -32,6 +32,8 @@ export interface SubscriptionCharge {
 /** A bill as it stands in one month. */
 export interface MonthRow {
   bill: Bill
+  /** YYYY-MM the row belongs to (on cards, the month the statement is due) */
+  month: string
   payment: BillPayment | undefined
   dueDate: string
   /** The real amount when entered, otherwise the estimate, or the card's purchases and subscriptions if they add up to more */
@@ -107,6 +109,7 @@ export function useBills() {
           const charged = [...purchases.map((p) => p.amount), ...charges.map((c) => c.subscription.amount)].reduce((sum, amount) => sum + amount, 0)
           return {
             bill,
+            month,
             payment,
             dueDate,
             amount: payment ? payment.amount : Math.max(bill.estimate, charged),

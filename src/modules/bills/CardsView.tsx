@@ -10,9 +10,9 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { Skeleton } from '@/components/ui/skeleton'
-import { formatDate, formatMoney } from '@/lib/format'
+import { formatDate, formatMoney, formatMonth, today } from '@/lib/format'
 import type { SubscriptionRow } from '../subscriptions/useSubscriptions'
-import { BILL_STATUS_LABELS, cardLabel, PAYMENT_METHODS } from './types'
+import { BILL_STATUS_LABELS, cardLabel, firstStatementMonth, PAYMENT_METHODS } from './types'
 import type { MonthRow } from './useBills'
 
 interface CardsViewProps {
@@ -21,6 +21,8 @@ interface CardsViewProps {
   rows: MonthRow[]
   /** Active subscriptions, matched to cards by `cardId` */
   subscriptions: SubscriptionRow[]
+  /** The statement before each one shown, when still to pay */
+  unpaid: MonthRow[]
   onAdd: () => void
   onPay: (row: MonthRow) => void
   onEnter: (row: MonthRow) => void
@@ -32,7 +34,7 @@ interface CardsViewProps {
   onSelect: (row: MonthRow) => void
 }
 
-export function CardsView({ loading, rows, subscriptions, onAdd, ...actions }: CardsViewProps) {
+export function CardsView({ loading, rows, subscriptions, unpaid, onAdd, ...actions }: CardsViewProps) {
   if (loading) {
     return (
       <div className="grid grid-cols-1 gap-4 px-4 lg:px-6 @3xl/main:grid-cols-2">
@@ -69,7 +71,7 @@ export function CardsView({ loading, rows, subscriptions, onAdd, ...actions }: C
   return (
     <div className="flex flex-col gap-4 px-4 lg:px-6">
       <p className="text-sm text-muted-foreground">
-        Faturas do mês: <span className="font-medium text-foreground tabular-nums">{formatMoney(total)}</span>
+        Total das faturas: <span className="font-medium text-foreground tabular-nums">{formatMoney(total)}</span>
       </p>
       <div className="grid grid-cols-1 gap-4 @3xl/main:grid-cols-2">
         {rows.map((row) => (
@@ -77,6 +79,7 @@ export function CardsView({ loading, rows, subscriptions, onAdd, ...actions }: C
             key={row.bill.id}
             row={row}
             subscriptions={subscriptions.filter((s) => s.subscription.cardId === row.bill.id)}
+            unpaid={unpaid.find((u) => u.bill.id === row.bill.id)}
             {...actions}
           />
         ))}
@@ -88,6 +91,7 @@ export function CardsView({ loading, rows, subscriptions, onAdd, ...actions }: C
 function CardTile({
   row,
   subscriptions,
+  unpaid,
   onPay,
   onEnter,
   onUndo,
@@ -95,9 +99,10 @@ function CardTile({
   onEdit,
   onAddPurchase,
   onSelect,
-}: Omit<CardsViewProps, 'loading' | 'rows' | 'subscriptions' | 'onAdd'> & { row: MonthRow; subscriptions: SubscriptionRow[] }) {
+}: Omit<CardsViewProps, 'loading' | 'rows' | 'subscriptions' | 'unpaid' | 'onAdd'> & { row: MonthRow; subscriptions: SubscriptionRow[]; unpaid?: MonthRow }) {
   const { bill, status } = row
   const details = bill.card
+  const open = firstStatementMonth(bill, today()) === row.month
   const monthly = subscriptions.reduce((sum, s) => sum + s.monthly, 0)
   const purchasesTotal = row.purchases.reduce((sum, p) => sum + p.amount, 0)
   const schedule = [details?.closingDay ? `fecha dia ${details.closingDay}` : '', `vence ${formatDate(row.dueDate, { day: '2-digit', month: '2-digit' })}`]
@@ -142,9 +147,29 @@ function CardTile({
       </CardHeader>
 
       <CardContent className="flex flex-col gap-4">
+        {unpaid && (
+          <div className="flex items-center justify-between gap-3 rounded-md border px-3 py-2 text-sm" onClick={(e) => e.stopPropagation()}>
+            <div className="flex min-w-0 flex-col">
+              <span className="truncate font-medium">
+                Fatura de {formatMonth(unpaid.month, true)} · <span className="tabular-nums">{formatMoney(unpaid.amount)}</span>
+              </span>
+              <span className={`text-xs ${unpaid.status === 'overdue' ? 'text-destructive' : 'text-muted-foreground'}`}>
+                {unpaid.status === 'overdue' ? 'Venceu' : 'Fechada · vence'} {formatDate(unpaid.dueDate, { day: '2-digit', month: '2-digit' })}
+                {unpaid.estimated ? ' · estimada' : ''}
+              </span>
+            </div>
+            <Button variant="outline" size="sm" onClick={() => onPay(unpaid)}>
+              <CheckIcon />
+              Pagar
+            </Button>
+          </div>
+        )}
         <div className="flex items-end justify-between gap-4">
           <div className="flex flex-col gap-0.5">
-            <span className="text-xs text-muted-foreground">Fatura{row.estimated && row.amount ? ' (estimada)' : ''}</span>
+            <span className="text-xs text-muted-foreground">
+              {open ? 'Fatura aberta' : 'Fatura'}
+              {row.estimated && row.amount ? ' (estimada)' : ''}
+            </span>
             <span className={`text-2xl font-semibold tabular-nums ${row.estimated ? 'text-muted-foreground' : ''}`}>
               {row.amount ? formatMoney(row.amount) : '—'}
             </span>

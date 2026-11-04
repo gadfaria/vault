@@ -24,7 +24,7 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
-import { currentMonth, daysUntil, formatDate, formatMonth, formatMoney, shiftMonth } from '@/lib/format'
+import { currentMonth, daysUntil, formatDate, formatMonth, formatMoney, shiftMonth, today } from '@/lib/format'
 import { BillFormDialog } from './BillFormDialog'
 import { BillHistoryDialog } from './BillHistoryDialog'
 import { CardExpenses } from './CardExpenses'
@@ -33,7 +33,7 @@ import { CardsView } from './CardsView'
 import { MonthSummary } from './MonthSummary'
 import { PaymentDialog } from './PaymentDialog'
 import { PurchaseFormDialog } from './PurchaseFormDialog'
-import { BILL_CATEGORIES, BILL_STATUS_LABELS, billFrequency, cardLabel, FREQUENCIES, isCard, PAYMENT_METHODS, type Bill, type BillStatus, type CardPurchase } from './types'
+import { BILL_CATEGORIES, BILL_STATUS_LABELS, billFrequency, cardLabel, firstStatementMonth, FREQUENCIES, isCard, PAYMENT_METHODS, type Bill, type BillStatus, type CardPurchase } from './types'
 import { useBills, type MonthRow } from './useBills'
 import { useSubscriptions } from '../subscriptions/useSubscriptions'
 
@@ -59,7 +59,8 @@ export function BillsScreen({ nav, view = 'bills' }: { nav?: React.ReactNode; vi
   const bills = useBills()
   const subs = useSubscriptions()
   const [cardDialog, setCardDialog] = useState<{ card?: Bill } | null>(null)
-  const [month, setMonth] = useState(currentMonth)
+  // null follows the default: the current month, or in Cartões each card's open statement
+  const [pickedMonth, setPickedMonth] = useState<string | null>(null)
   const [billDialog, setBillDialog] = useState<{ bill?: Bill } | null>(null)
   const [paymentRow, setPaymentRow] = useState<{ row: MonthRow; markPaid: boolean } | null>(null)
   const [historyBill, setHistoryBill] = useState<Bill | null>(null)
@@ -68,11 +69,27 @@ export function BillsScreen({ nav, view = 'bills' }: { nav?: React.ReactNode; vi
   const [deletingPurchase, setDeletingPurchase] = useState<CardPurchase | null>(null)
   const [selectedCardId, setSelectedCardId] = useState<string | null>(null)
 
+  // The statement each card is taking purchases in today; cards close on different days
+  const openMonths = new Map(bills.bills.filter(isCard).map((card) => [card.id, firstStatementMonth(card, today())]))
+  const openStatements = view === 'cards' && pickedMonth === null
+  const month = pickedMonth ?? (openStatements ? ([...openMonths.values()].sort().at(-1) ?? currentMonth()) : currentMonth())
   const rows = bills.monthRows(month, subs.all)
+  const cardRows = openStatements
+    ? [...new Set(openMonths.values())]
+        .flatMap((m) => bills.monthRows(m, subs.all).filter((row) => isCard(row.bill) && openMonths.get(row.bill.id) === m))
+        .sort((a, b) => a.dueDate.localeCompare(b.dueDate) || a.bill.name.localeCompare(b.bill.name))
+    : rows.filter((row) => isCard(row.bill))
+  // The statement before each one shown, while it is still to pay
+  const unpaidStatements =
+    view === 'cards'
+      ? cardRows.flatMap((row) =>
+          bills.monthRows(shiftMonth(row.month, -1), subs.all).filter((prev) => prev.bill.id === row.bill.id && prev.status !== 'paid' && prev.amount > 0),
+        )
+      : []
   // Card statements live in Cartões and Resumo, not in the bills list
   const billRows = rows.filter((row) => !isCard(row.bill))
-  const selectedCard = view === 'cards' ? rows.find((row) => isCard(row.bill) && row.bill.id === selectedCardId) : undefined
-  const isCurrent = month === currentMonth()
+  const selectedCard = view === 'cards' ? cardRows.find((row) => row.bill.id === selectedCardId) : undefined
+  const showsDefault = view === 'cards' ? openStatements : month === currentMonth()
   const editBill = (bill: Bill) => (isCard(bill) ? setCardDialog({ card: bill }) : setBillDialog({ bill }))
 
   return (
@@ -108,16 +125,16 @@ export function BillsScreen({ nav, view = 'bills' }: { nav?: React.ReactNode; vi
       <PageBody>
         {nav}
         <div className="flex items-center gap-2 px-4 lg:px-6">
-          <Button variant="outline" size="icon" className="size-8" onClick={() => setMonth((m) => shiftMonth(m, -1))} aria-label="Mês anterior">
+          <Button variant="outline" size="icon" className="size-8" onClick={() => setPickedMonth(shiftMonth(month, -1))} aria-label="Mês anterior">
             <ChevronLeftIcon />
           </Button>
-          <h2 className="min-w-40 text-center text-base font-medium first-letter:uppercase">{formatMonth(month)}</h2>
-          <Button variant="outline" size="icon" className="size-8" onClick={() => setMonth((m) => shiftMonth(m, 1))} aria-label="Próximo mês">
+          <h2 className="min-w-40 text-center text-base font-medium first-letter:uppercase">{openStatements ? 'Faturas abertas' : formatMonth(month)}</h2>
+          <Button variant="outline" size="icon" className="size-8" onClick={() => setPickedMonth(shiftMonth(month, 1))} aria-label="Próximo mês">
             <ChevronRightIcon />
           </Button>
-          {!isCurrent && (
-            <Button variant="ghost" size="sm" onClick={() => setMonth(currentMonth())}>
-              Mês atual
+          {!showsDefault && (
+            <Button variant="ghost" size="sm" onClick={() => setPickedMonth(null)}>
+              {view === 'cards' ? 'Fatura atual' : 'Mês atual'}
             </Button>
           )}
         </div>
@@ -132,9 +149,10 @@ export function BillsScreen({ nav, view = 'bills' }: { nav?: React.ReactNode; vi
         ) : view === 'cards' ? (
           <CardsView
             loading={bills.loading || subs.loading}
-            rows={rows.filter((row) => isCard(row.bill))}
+            rows={cardRows}
             subscriptions={subs.active}
             onAdd={() => setCardDialog({})}
+            unpaid={unpaidStatements}
             onPay={(row) => setPaymentRow({ row, markPaid: true })}
             onEnter={(row) => setPaymentRow({ row, markPaid: false })}
             onUndo={(row) => row.payment && bills.undoPayment(row.payment)}
@@ -196,10 +214,10 @@ export function BillsScreen({ nav, view = 'bills' }: { nav?: React.ReactNode; vi
       />
       <PaymentDialog
         row={paymentRow?.row ?? null}
-        month={month}
+        month={paymentRow?.row.month ?? month}
         markPaid={paymentRow?.markPaid ?? false}
         onClose={() => setPaymentRow(null)}
-        onSubmit={(row, input, newFiles, removed) => bills.savePayment(row.bill, month, input, newFiles, removed)}
+        onSubmit={(row, input, newFiles, removed) => bills.savePayment(row.bill, row.month, input, newFiles, removed)}
       />
       <BillHistoryDialog
         bill={historyBill}

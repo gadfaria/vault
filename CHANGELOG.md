@@ -5,6 +5,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Changed
+- Cartões opens on each card's open statement (the one today's purchases go to, which changes on the closing day), titled "Faturas abertas"; the arrows still browse by month and "Fatura atual" comes back. The card marks it "Fatura aberta".
+- A closed statement not yet paid shows on its card above the open one, with its amount, due date and a Pagar button, until it is marked paid.
+
 ### Added
 - Pan/tilt for cameras that move: "Tem controle de movimento" in the camera form swaps the player for one with arrows (hold to turn, release to stop; arrow keys work too). The bridge's new `ptz-server.mjs` sends the ONVIF moves; setup in `bridge/README.md`.
 - **Cameras** module: live view of home cameras inside the Vault, through a go2rtc bridge at home published with Cloudflare Tunnel + Access. Setup in `bridge/README.md`; the camera password stays on the bridge, Drive keeps only the bridge address and stream name.
