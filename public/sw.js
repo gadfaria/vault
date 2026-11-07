@@ -4,6 +4,9 @@
  * - Pages (navigations): network first, so a deploy shows up on the next open;
  *   falls back to the cached index.html when offline.
  * - Built assets (/assets/*, hashed names) and icons: cache first, they never change.
+ *   After each online page load, the cache is synced with the build's asset-list.json:
+ *   old bundles are dropped and every current one is fetched, lazy chunks included
+ *   (like the book reader), so screens never opened online still work offline.
  * - Anything cross-origin (Google sign-in, Drive API) is never touched: data always
  *   comes fresh from Drive.
  */
@@ -28,13 +31,19 @@ self.addEventListener('activate', (event) => {
   )
 })
 
-/** Drops cached JS/CSS bundles the current index.html no longer references (fonts and icons stay). */
-async function pruneBundles(html) {
-  const referenced = new Set([...html.matchAll(/\/assets\/[^"'\s>]+/g)].map((m) => m[0]))
+/** Makes the cached assets match the current build: drops old ones, fetches missing ones. */
+async function syncAssets() {
+  const res = await fetch('/asset-list.json', { cache: 'no-store' })
+  if (!res.ok) return
+  const assets = new Set(await res.json())
   const cache = await caches.open(CACHE)
   for (const request of await cache.keys()) {
     const path = new URL(request.url).pathname
-    if (/^\/assets\/.+\.(js|css)$/.test(path) && !referenced.has(path)) await cache.delete(request)
+    if (path.startsWith('/assets/') && !assets.has(path)) await cache.delete(request)
+  }
+  for (const path of assets) {
+    // One failed file only means it is fetched when first used, as before.
+    if (!(await cache.match(path))) await cache.add(path).catch(() => {})
   }
 }
 
@@ -44,11 +53,7 @@ async function handleNavigation(request) {
     if (response.ok) {
       const cache = await caches.open(CACHE)
       await cache.put('/', response.clone())
-      response
-        .clone()
-        .text()
-        .then(pruneBundles)
-        .catch(() => {})
+      syncAssets().catch(() => {})
     }
     return response
   } catch {

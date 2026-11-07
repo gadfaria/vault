@@ -1,5 +1,5 @@
-import { lazy, Suspense, useCallback, useEffect, useRef, useState } from 'react'
-import { BookOpenIcon, EllipsisVerticalIcon, Loader2Icon, PencilIcon, PlusIcon, Trash2Icon } from 'lucide-react'
+import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { BookOpenIcon, CloudOffIcon, EllipsisVerticalIcon, HardDriveIcon, Loader2Icon, PencilIcon, PlusIcon, Trash2Icon } from 'lucide-react'
 import { toast } from 'sonner'
 import { PageBody } from '@/components/app-layout'
 import { SiteHeader } from '@/components/site-header'
@@ -23,16 +23,23 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { Input } from '@/components/ui/input'
 import { Skeleton } from '@/components/ui/skeleton'
+import { BOOK_CACHE_LIMIT, removeCachedBook } from '@/lib/book-cache'
 import { formatBytes } from '@/lib/format'
 import type { ModuleScreenProps } from '..'
-import { useAttachmentUrl } from '@/storage/useAttachments'
 import { ReaderMessage } from './ReaderMessage'
 import type { BookDetails } from './BookViewer'
 import { BOOK_ACCEPT, bookFormat, bookHref, fileFormat, readingPercent, titleFromFileName, type Book, type BookProgress } from './types'
+import { useBookFile } from './useBookFile'
+import { useCachedBooks } from './useCachedBooks'
 import { useReading, type ReadingState } from './useReading'
 
 // foliate-js (and pdf.js, for PDFs) are large, so they load only when a book is opened.
-const BookViewer = lazy(() => import('./BookViewer'))
+// If the reader's code can't load (offline before it was ever cached), say so instead of breaking the page.
+const BookViewer = lazy(() =>
+  import('./BookViewer').catch(() => ({
+    default: () => <ReaderMessage>Sem conexão. O leitor ainda não está salvo neste aparelho.</ReaderMessage>,
+  })),
+)
 
 /** Progress is written to Drive at most this often while reading. */
 const SAVE_DELAY_MS = 2000
@@ -48,6 +55,8 @@ export function ReadingScreen({ path }: ModuleScreenProps) {
         <SiteHeader title={[{ label: 'Leitura', href: '#/reading' }, { label: book?.title ?? 'Livro' }]} />
         {reading.loading ? (
           <ReaderMessage spinner>Carregando…</ReaderMessage>
+        ) : reading.unavailable ? (
+          <ReaderMessage>Sem conexão. A biblioteca fica no aparelho depois de aberta uma vez com internet.</ReaderMessage>
         ) : book ? (
           <BookReader key={book.id} book={book} saveProgress={reading.saveProgress} updateDetails={reading.updateDetails} />
         ) : (
@@ -74,7 +83,7 @@ function BookReader({
   saveProgress: ReadingState['saveProgress']
   updateDetails: ReadingState['updateDetails']
 }) {
-  const url = useAttachmentUrl(book.file.id)
+  const file = useBookFile(book)
   const latest = useRef(book)
   useEffect(() => {
     latest.current = book
@@ -120,11 +129,19 @@ function BookReader({
     }
   }, [flush])
 
-  if (!url) return <ReaderMessage spinner>Baixando do Drive ({formatBytes(book.file.size)})…</ReaderMessage>
+  if (file.status === 'offline') return <ReaderMessage>Sem conexão. Este livro ainda não foi baixado neste aparelho.</ReaderMessage>
+  if (file.status === 'error') return <ReaderMessage>Não foi possível baixar este livro do Drive.</ReaderMessage>
+  if (file.status === 'loading') {
+    return (
+      <ReaderMessage spinner>
+        {file.downloading ? `Baixando do Drive (${formatBytes(book.file.size)})… Só na primeira vez neste aparelho.` : 'Abrindo…'}
+      </ReaderMessage>
+    )
+  }
   return (
     <Suspense fallback={<ReaderMessage spinner>Abrindo o leitor…</ReaderMessage>}>
       <BookViewer
-        url={url}
+        file={file.file}
         fileName={book.file.name}
         format={bookFormat(book)}
         initialCfi={book.cfi}
@@ -140,6 +157,9 @@ function Library({ reading }: { reading: ReadingState }) {
   const [uploading, setUploading] = useState(false)
   const [renaming, setRenaming] = useState<Book | null>(null)
   const [confirm, setConfirm] = useState<Book | null>(null)
+  const cached = useCachedBooks()
+  const cachedIds = useMemo(() => new Set(cached.map((b) => b.fileId)), [cached])
+  const cachedBytes = cached.reduce((sum, b) => sum + b.size, 0)
 
   async function add(files: File[]) {
     const books = files.filter((f) => fileFormat(f))
@@ -155,7 +175,14 @@ function Library({ reading }: { reading: ReadingState }) {
       <SiteHeader title="Leitura" />
       <PageBody>
         <div className="flex items-center justify-between px-4 lg:px-6">
-          <h2 className="text-sm font-medium">Biblioteca</h2>
+          <div className="flex min-w-0 flex-col">
+            <h2 className="text-sm font-medium">Biblioteca</h2>
+            {cachedBytes > 0 && (
+              <p className="text-xs text-muted-foreground">
+                {formatBytes(cachedBytes)} de {formatBytes(BOOK_CACHE_LIMIT)} neste aparelho
+              </p>
+            )}
+          </div>
           <input
             ref={input}
             type="file"
@@ -168,7 +195,7 @@ function Library({ reading }: { reading: ReadingState }) {
               void add(files)
             }}
           />
-          <Button variant="outline" size="sm" onClick={() => input.current?.click()} disabled={reading.loading || uploading}>
+          <Button variant="outline" size="sm" onClick={() => input.current?.click()} disabled={reading.loading || uploading || !reading.online}>
             {uploading ? <Loader2Icon className="animate-spin" /> : <PlusIcon />}
             {uploading ? 'Enviando…' : 'Adicionar livro'}
           </Button>
@@ -181,6 +208,12 @@ function Library({ reading }: { reading: ReadingState }) {
                 <Skeleton key={i} className="aspect-[3/4] w-full" />
               ))}
             </div>
+          ) : reading.unavailable ? (
+            <div className="flex flex-col items-center gap-2 rounded-lg border border-dashed py-16 text-center">
+              <CloudOffIcon className="size-6 text-muted-foreground" />
+              <p className="text-sm">Sem conexão</p>
+              <p className="text-sm text-muted-foreground">A biblioteca fica no aparelho depois de aberta uma vez com internet.</p>
+            </div>
           ) : reading.books.length === 0 ? (
             <div className="flex flex-col items-center gap-2 rounded-lg border border-dashed py-16 text-center">
               <BookOpenIcon className="size-6 text-muted-foreground" />
@@ -190,7 +223,14 @@ function Library({ reading }: { reading: ReadingState }) {
           ) : (
             <div className="grid grid-cols-2 gap-4 @xl/main:grid-cols-3 @4xl/main:grid-cols-4 @6xl/main:grid-cols-5">
               {reading.books.map((book) => (
-                <BookCard key={book.id} book={book} onRename={() => setRenaming(book)} onDelete={() => setConfirm(book)} />
+                <BookCard
+                  key={book.id}
+                  book={book}
+                  cached={cachedIds.has(book.file.id)}
+                  online={reading.online}
+                  onRename={() => setRenaming(book)}
+                  onDelete={() => setConfirm(book)}
+                />
               ))}
             </div>
           )}
@@ -203,7 +243,7 @@ function Library({ reading }: { reading: ReadingState }) {
           <AlertDialogHeader>
             <AlertDialogTitle>Remover livro?</AlertDialogTitle>
             <AlertDialogDescription>
-              {confirm?.title} sai da biblioteca e o arquivo vai para a lixeira do Drive (recuperável por 30 dias).
+              {confirm?.title} sai da biblioteca e deste aparelho, e o arquivo vai para a lixeira do Drive (recuperável por 30 dias).
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -224,18 +264,34 @@ function Library({ reading }: { reading: ReadingState }) {
   )
 }
 
-function BookCard({ book, onRename, onDelete }: { book: Book; onRename: () => void; onDelete: () => void }) {
+function BookCard({
+  book,
+  cached,
+  online,
+  onRename,
+  onDelete,
+}: {
+  book: Book
+  /** Stored on this device, so it opens without downloading (and offline) */
+  cached: boolean
+  online: boolean
+  onRename: () => void
+  onDelete: () => void
+}) {
   const percent = readingPercent(book)
 
   return (
-    <div className="group relative flex min-w-0 flex-col gap-2">
+    <div className={`group relative flex min-w-0 flex-col gap-2 ${!online && !cached ? 'opacity-50' : ''}`}>
       <a
         href={bookHref(book)}
         className="relative flex aspect-[3/4] flex-col justify-between overflow-hidden rounded-md border bg-gradient-to-br from-muted to-muted/40 p-3 transition hover:ring-2 hover:ring-foreground/20"
       >
         <span className="flex items-center justify-between text-muted-foreground">
           <BookOpenIcon className="size-5" />
-          <span className="text-[10px] font-medium tracking-wide uppercase">{bookFormat(book)}</span>
+          <span className="flex items-center gap-1.5 text-[10px] font-medium tracking-wide uppercase">
+            {cached && <HardDriveIcon className="size-3.5" aria-label="Disponível offline" />}
+            {bookFormat(book)}
+          </span>
         </span>
         <span className="flex flex-col gap-1">
           <span className="line-clamp-4 text-sm font-medium leading-snug">{book.title}</span>
@@ -250,6 +306,7 @@ function BookCard({ book, onRename, onDelete }: { book: Book; onRename: () => vo
       <div className="flex min-w-0 items-start justify-between gap-1">
         <div className="min-w-0 text-xs text-muted-foreground">
           <p>{percent === null ? 'Não iniciado' : `${percent}% lido`}</p>
+          {!online && !cached && <p>Precisa de internet</p>}
           {book.lastReadAt && <p>Lido em {new Date(book.lastReadAt).toLocaleDateString('pt-BR')}</p>}
         </div>
         <DropdownMenu>
@@ -259,11 +316,17 @@ function BookCard({ book, onRename, onDelete }: { book: Book; onRename: () => vo
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
-            <DropdownMenuItem onSelect={onRename}>
+            <DropdownMenuItem onSelect={onRename} disabled={!online}>
               <PencilIcon />
               Renomear
             </DropdownMenuItem>
-            <DropdownMenuItem variant="destructive" onSelect={onDelete}>
+            {cached && (
+              <DropdownMenuItem onSelect={() => void removeCachedBook(book.file.id)}>
+                <HardDriveIcon />
+                Remover do aparelho
+              </DropdownMenuItem>
+            )}
+            <DropdownMenuItem variant="destructive" onSelect={onDelete} disabled={!online}>
               <Trash2Icon />
               Remover
             </DropdownMenuItem>

@@ -145,7 +145,8 @@ export function parseKm(input: string): number | null {
 /** 2_500_000 → "2,4 MB" */
 export function formatBytes(bytes: number): string {
   if (bytes < 1024 * 1024) return `${Math.max(1, Math.round(bytes / 1024))} KB`
-  return `${(bytes / 1024 / 1024).toFixed(1).replace('.', ',')} MB`
+  if (bytes < 1024 * 1024 * 1024) return `${(bytes / 1024 / 1024).toFixed(1).replace('.', ',')} MB`
+  return `${(bytes / 1024 / 1024 / 1024).toFixed(1).replace('.', ',')} GB`
 }
 
 /** 0.135 → "+13,5%" */

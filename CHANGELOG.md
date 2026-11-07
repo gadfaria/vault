@@ -5,6 +5,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Added
+- Books are downloaded once per device: Leitura keeps each one in the browser's private file storage (up to 1 GB, the least recently opened go first), so it opens right away and offline. Cards show which books are on the device, "Remover do aparelho" frees one, and signing out deletes them all. The library and the reading position work offline too; positions saved offline reach Drive on the next load with a connection.
+
+### Changed
+- PDFs are read from the device in pieces as pages are shown, instead of being loaded whole into memory.
+- The app keeps every file of the current build available offline (the build lists them in `asset-list.json`), including parts that load on demand like the book reader. Before, those parts were dropped from the offline cache on every page load.
+
 ## [0.5.0] - 2026-11-07
 
 ### Changed

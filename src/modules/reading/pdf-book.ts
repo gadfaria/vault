@@ -4,7 +4,7 @@
  * pdfjs-dist from npm. Every page is a fixed-layout section: a canvas plus a text layer
  * for selection, redrawn at each zoom. Links inside the PDF are not clickable.
  */
-import { GlobalWorkerOptions, TextLayer, getDocument, type PDFDocumentProxy, type PDFPageProxy } from 'pdfjs-dist'
+import { GlobalWorkerOptions, PDFDataRangeTransport, TextLayer, getDocument, type PDFDocumentProxy, type PDFPageProxy } from 'pdfjs-dist'
 
 GlobalWorkerOptions.workerSrc = new URL('pdfjs-dist/build/pdf.worker.min.mjs', import.meta.url).toString()
 
@@ -96,7 +96,15 @@ async function pageIndex(pdf: PDFDocumentProxy, href: string): Promise<number> {
 
 /** A foliate-js book for a PDF file. */
 export async function makePdfBook(file: Blob) {
-  const task = getDocument({ data: new Uint8Array(await file.arrayBuffer()) })
+  // pdf.js asks for byte ranges as it needs them, so a book stored on the device is never loaded whole.
+  const transport = new PDFDataRangeTransport(file.size, null)
+  transport.requestDataRange = (begin: number, end: number) => {
+    void file
+      .slice(begin, end)
+      .arrayBuffer()
+      .then((chunk) => transport.onDataRange(begin, new Uint8Array(chunk)))
+  }
+  const task = getDocument({ range: transport, disableAutoFetch: true, disableStream: true })
   const pdf = await task.promise
   const { info } = (await pdf.getMetadata().catch(() => null)) ?? {}
   const details = (info ?? {}) as { Title?: string; Author?: string }

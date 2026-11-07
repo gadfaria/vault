@@ -69,7 +69,7 @@ async function openBook(foliate: FoliateView, blob: Blob, fileName: string, form
     await foliate.open(await makePdfBook(blob))
     return
   }
-  // foliate tells formats apart by file name, so hand it a named File.
+  // foliate tells formats apart by file name, so hand it a named File (wrapping a Blob does not copy its data).
   await foliate.open(new File([blob], fileName, { type: EPUB_MIME }))
   // Runs before each chapter is turned into a blob: URL, so nothing unsafe ever renders.
   foliate.book.transformTarget?.addEventListener('data', (event) => {
@@ -82,14 +82,15 @@ async function openBook(foliate: FoliateView, blob: Blob, fileName: string, form
 
 /** Paginated reader (foliate-js) for EPUB and PDF: swipe, click the arrows or use ← → to turn pages. */
 export default function BookViewer({
-  url,
+  file,
   fileName,
   format,
   initialCfi,
   onRelocate,
   onDetails,
 }: {
-  url: string
+  /** Ideally a disk-backed File from the device's copy, which the readers slice instead of loading whole */
+  file: Blob
   fileName: string
   format: BookFormat
   initialCfi?: string
@@ -149,9 +150,7 @@ export default function BookViewer({
     })
 
     async function open() {
-      const blob = await fetch(url).then((res) => res.blob())
-      if (cancelled) return
-      await openBook(foliate, blob, fileName, format)
+      await openBook(foliate, file, fileName, format)
       if (cancelled) return
       const renderer = foliate.renderer
       if (foliate.isFixedLayout) {
@@ -188,7 +187,7 @@ export default function BookViewer({
       foliate.book?.destroy?.()
       foliate.remove()
     }
-  }, [url, fileName, format, turn])
+  }, [file, fileName, format, turn])
 
   const changeFontSize = (next: number) => {
     setFontSize(next)

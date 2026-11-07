@@ -1,4 +1,5 @@
 import { useCallback, useMemo, useRef, useState, type ReactNode } from 'react'
+import { clearBookCache } from '@/lib/book-cache'
 import { clearOffline } from '@/lib/offline-store'
 import { AuthContext } from './context'
 import {
@@ -35,8 +36,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signOut = useCallback(() => {
     clearSession()
-    // The offline copy of notes belongs to this account: never leave it on the device.
+    // Offline copies (notes, the reading library, downloaded books) belong to this account: never leave them on the device.
     void clearOffline()
+    void clearBookCache()
     setSession(null)
     setExpired(false)
   }, [setSession])
