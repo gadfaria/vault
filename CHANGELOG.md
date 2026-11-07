@@ -11,6 +11,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - A closed statement not yet paid shows on its card above the open one, with its amount, due date and a Pagar button, until it is marked paid.
 
 ### Added
+- **Reading** module (`#/reading`): add PDFs and EPUBs to a library and read them inside the Vault, in one paginated reader (foliate-js). EPUBs show the current chapter and percentage, with adjustable font size; PDFs show one page at a time with the page number, fitting the page or its width. EPUBs take their title and author from the book, and the reading position is saved to Drive, so it reopens where you stopped, also on another device. Scripts inside an EPUB never run: each chapter is cleaned of scripts, event handlers and `javascript:` links before it renders.
+- Attachments over 20 MB are sent with a resumable upload; books accept up to 200 MB.
 - Pan/tilt for cameras that move: "Tem controle de movimento" in the camera form swaps the player for one with arrows (hold to turn, release to stop; arrow keys work too). The bridge's new `ptz-server.mjs` sends the ONVIF moves; setup in `bridge/README.md`.
 - **Cameras** module: live view of home cameras inside the Vault, through a go2rtc bridge at home published with Cloudflare Tunnel + Access. Setup in `bridge/README.md`; the camera password stays on the bridge, Drive keeps only the bridge address and stream name.
 

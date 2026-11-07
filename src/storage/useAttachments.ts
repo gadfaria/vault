@@ -3,20 +3,20 @@ import { toast } from 'sonner'
 import type { Attachment } from '@/domain/types'
 import { useVaultContext } from './context'
 
-const MAX_BYTES = 20 * 1024 * 1024
+const DEFAULT_MAX_BYTES = 20 * 1024 * 1024
 
 /** Object URLs of downloaded attachments, shared across components for the whole session. */
 const urlCache = new Map<string, Promise<string>>()
 
 /** Upload and trash helpers for files owned by `module`. */
-export function useAttachments(module: string) {
+export function useAttachments(module: string, maxBytes = DEFAULT_MAX_BYTES) {
   const { vault, reportError } = useVaultContext()
 
   const upload = useCallback(
     async (files: File[]): Promise<Attachment[] | null> => {
-      const tooBig = files.find((f) => f.size > MAX_BYTES)
+      const tooBig = files.find((f) => f.size > maxBytes)
       if (tooBig) {
-        toast.error(`${tooBig.name} passa de 20 MB.`)
+        toast.error(`${tooBig.name} passa de ${Math.round(maxBytes / 1024 / 1024)} MB.`)
         return null
       }
       try {
@@ -28,7 +28,7 @@ export function useAttachments(module: string) {
         return null
       }
     },
-    [vault, module, reportError],
+    [vault, module, maxBytes, reportError],
   )
 
   /** Best effort: a file left behind in attachments/ is harmless, so failures are only reported. */

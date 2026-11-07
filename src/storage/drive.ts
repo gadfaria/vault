@@ -33,6 +33,8 @@ interface FileMetadata {
 
 const FILE_FIELDS = 'id,name,mimeType,appProperties'
 const MARKDOWN_MIME = 'text/markdown'
+/** Files up to this size keep the single multipart request; bigger ones (books) use a resumable upload. */
+const MULTIPART_MAX_BYTES = 20 * 1024 * 1024
 
 /** Thin wrapper over the Drive v3 REST API. Only sees files this app created (drive.file scope). */
 export class DriveClient {
@@ -168,10 +170,11 @@ export class DriveClient {
     return res.json()
   }
 
-  /** Uploads a binary file (image, PDF…) with its metadata in one multipart request. */
+  /** Uploads a binary file (image, PDF…) with its metadata: one multipart request, or a resumable upload for big files. */
   async uploadFile(file: File, parentId: string, appProperties?: Record<string, string>): Promise<DriveFile & { size?: string }> {
     const mimeType = file.type || 'application/octet-stream'
     const metadata: FileMetadata = { name: file.name, mimeType, parents: [parentId], appProperties }
+    if (file.size > MULTIPART_MAX_BYTES) return this.uploadResumable(file, mimeType, metadata)
     const boundary = `vault-${crypto.randomUUID()}`
     const body = new Blob([
       `--${boundary}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n${JSON.stringify(metadata)}\r\n`,
@@ -184,6 +187,23 @@ export class DriveClient {
       headers: { 'Content-Type': `multipart/related; boundary=${boundary}` },
       body,
     })
+    return res.json()
+  }
+
+  /** Starts an upload session, then sends the whole file to it in one PUT. */
+  private async uploadResumable(file: File, mimeType: string, metadata: FileMetadata): Promise<DriveFile & { size?: string }> {
+    const start = await this.request(`${UPLOAD}/files?uploadType=resumable&fields=${FILE_FIELDS},size`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json; charset=UTF-8',
+        'X-Upload-Content-Type': mimeType,
+        'X-Upload-Content-Length': String(file.size),
+      },
+      body: JSON.stringify(metadata),
+    })
+    const session = start.headers.get('Location')
+    if (!session) throw new DriveError(0, 'Drive did not return an upload session.')
+    const res = await this.request(session, { method: 'PUT', headers: { 'Content-Type': mimeType }, body: file })
     return res.json()
   }
 
