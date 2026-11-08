@@ -27,6 +27,7 @@ import { BOOK_CACHE_LIMIT, removeCachedBook } from '@/lib/book-cache'
 import { formatBytes } from '@/lib/format'
 import type { ModuleScreenProps } from '..'
 import { ReaderMessage } from './ReaderMessage'
+import { SyncIndicator } from './SyncIndicator'
 import type { BookDetails } from './BookViewer'
 import { BOOK_ACCEPT, bookFormat, bookHref, fileFormat, readingPercent, titleFromFileName, type Book, type BookProgress } from './types'
 import { useBookFile } from './useBookFile'
@@ -52,7 +53,9 @@ export function ReadingScreen({ path }: ModuleScreenProps) {
     const book = reading.books.find((b) => b.id === bookId)
     return (
       <>
-        <SiteHeader title={[{ label: 'Leitura', href: '#/reading' }, { label: book?.title ?? 'Livro' }]} />
+        <SiteHeader title={[{ label: 'Leitura', href: '#/reading' }, { label: book?.title ?? 'Livro' }]}>
+          <SyncIndicator status={reading.sync} />
+        </SiteHeader>
         {reading.loading ? (
           <ReaderMessage spinner>Carregando…</ReaderMessage>
         ) : reading.unavailable ? (
@@ -172,7 +175,9 @@ function Library({ reading }: { reading: ReadingState }) {
 
   return (
     <>
-      <SiteHeader title="Leitura" />
+      <SiteHeader title="Leitura">
+        <SyncIndicator status={reading.sync} />
+      </SiteHeader>
       <PageBody>
         <div className="flex items-center justify-between px-4 lg:px-6">
           <div className="flex min-w-0 flex-col">

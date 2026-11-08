@@ -7,6 +7,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Added
 - Books are downloaded once per device: Leitura keeps each one in the browser's private file storage (up to 1 GB, the least recently opened go first), so it opens right away and offline. Cards show which books are on the device, "Remover do aparelho" frees one, and signing out deletes them all. The library and the reading position work offline too; positions saved offline reach Drive on the next load with a connection.
+- Sync status in Leitura's header, in the library and inside a book: "Sincronizando…" while the library loads from or saves to Drive, "Sincronizado" for a moment after the position reaches Drive, and "Salvo no aparelho" while positions read offline wait for a connection. On phones only the icon shows.
 
 ### Changed
 - PDFs are read from the device in pieces as pages are shown, instead of being loaded whole into memory.

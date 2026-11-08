@@ -25,6 +25,17 @@ interface CachedIndex {
 /** fetch() rejects with a TypeError when there is no connection at all. */
 const isNetworkError = (err: unknown) => err instanceof TypeError
 
+/** How long "Sincronizado" stays visible after a write reaches Drive. */
+const SYNCED_FLASH_MS = 2500
+
+/**
+ * - `syncing`: loading the library from Drive or writing to it
+ * - `pending`: positions saved on the device, waiting for a connection to reach Drive
+ * - `synced`: a write just reached Drive (shown briefly)
+ * - `idle`: nothing to show
+ */
+export type SyncStatus = 'syncing' | 'pending' | 'synced' | 'idle'
+
 /**
  * The library (data/reading.json). It is also kept on the device, so books downloaded
  * here can be opened and read offline; the reading position is then saved on the device
@@ -38,15 +49,40 @@ export function useReading() {
   const [data, setData] = useState<ReadingData | null>(null)
   const [settled, setSettled] = useState(false)
   const latest = useRef<CachedIndex>({ owner, data: EMPTY, pending: [] })
+  const [pendingCount, setPendingCount] = useState(0)
+  // Drive requests in flight (the first load and every write), and the brief "synced" flash after them.
+  const [inFlight, setInFlight] = useState(0)
+  const [justSynced, setJustSynced] = useState(false)
+  const flashTimer = useRef<number | undefined>(undefined)
 
   const keep = useCallback(
     (next: ReadingData, pending: string[]) => {
       latest.current = { owner, data: next, pending }
       setData(next)
+      setPendingCount(pending.length)
       void setOffline(INDEX_KEY, latest.current)
     },
     [owner],
   )
+
+  /** Runs a Drive request while the header shows it syncing. */
+  const track = useCallback(async <T,>(request: () => Promise<T>): Promise<T> => {
+    setInFlight((n) => n + 1)
+    try {
+      return await request()
+    } finally {
+      setInFlight((n) => n - 1)
+    }
+  }, [])
+
+  /** Briefly shows "synced" after something was saved to Drive (not after a plain load). */
+  const flashSynced = useCallback(() => {
+    window.clearTimeout(flashTimer.current)
+    setJustSynced(true)
+    flashTimer.current = window.setTimeout(() => setJustSynced(false), SYNCED_FLASH_MS)
+  }, [])
+
+  useEffect(() => () => window.clearTimeout(flashTimer.current), [])
 
   useEffect(() => {
     let cancelled = false
@@ -55,6 +91,7 @@ export function useReading() {
       if (!cancelled) {
         latest.current = entry
         setData((current) => current ?? entry.data)
+        setPendingCount(entry.pending.length)
       }
       return entry
     })
@@ -64,7 +101,7 @@ export function useReading() {
         cancelled = true
       }
     }
-    ;(async () => {
+    void track(async () => {
       const entry = await cached
       await vault.open()
       // Positions saved offline go up first; merging keeps whichever reading is newer.
@@ -72,8 +109,9 @@ export function useReading() {
       const loaded = offline.length ? await vault.save('reading', EMPTY, { books: offline }) : await vault.load('reading', EMPTY)
       if (cancelled) return
       keep(loaded, [])
+      if (offline.length) flashSynced()
       void keepOnlyBooks(new Set(loaded.books.filter((b) => !b.deleted).map((b) => b.file.id)))
-    })()
+    })
       .catch((err: unknown) => {
         if (!cancelled && !isNetworkError(err)) reportError(err)
       })
@@ -81,7 +119,7 @@ export function useReading() {
     return () => {
       cancelled = true
     }
-  }, [vault, owner, online, keep, reportError])
+  }, [vault, owner, online, keep, track, flashSynced, reportError])
 
   /**
    * Writes to Drive together with any positions still waiting from offline reading, so the
@@ -91,9 +129,10 @@ export function useReading() {
     async (books: Book[]) => {
       const { data: current, pending } = latest.current
       const waiting = current.books.filter((b) => pending.includes(b.id))
-      keep(await vault.save('reading', EMPTY, { books: mergeById(waiting, books) }), [])
+      keep(await track(() => vault.save('reading', EMPTY, { books: mergeById(waiting, books) })), [])
+      flashSynced()
     },
-    [vault, keep],
+    [vault, keep, track, flashSynced],
   )
 
   const save = useCallback(
@@ -181,8 +220,11 @@ export function useReading() {
     [trash, save],
   )
 
+  const sync: SyncStatus = inFlight > 0 ? 'syncing' : pendingCount > 0 ? 'pending' : justSynced ? 'synced' : 'idle'
+
   return {
     books,
+    sync,
     loading: !data && !settled,
     /** Offline with no copy of the library on this device yet */
     unavailable: !data && settled,
