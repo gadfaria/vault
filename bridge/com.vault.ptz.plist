@@ -14,6 +14,9 @@
   <true/>
   <key>KeepAlive</key>
   <true/>
+  <!-- 077: the log can show the camera address with its password, so only this user reads it. -->
+  <key>Umask</key>
+  <integer>63</integer>
   <key>StandardOutPath</key>
   <string>BRIDGE_DIR/ptz.log</string>
   <key>StandardErrorPath</key>

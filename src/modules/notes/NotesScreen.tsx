@@ -1,4 +1,5 @@
 import { useMemo, useRef, useState, type FormEvent } from 'react'
+import { navigate } from '@/lib/navigate'
 import {
   ChevronRightIcon,
   EllipsisIcon,
@@ -107,7 +108,7 @@ export function NotesScreen({ path }: ModuleScreenProps) {
 
   async function newNote(folderId: string) {
     const note = await notes.createNote(folderId, '')
-    if (note) window.location.assign(`#/notes/${note.id}`)
+    if (note) navigate(`#/notes/${note.id}`)
   }
 
   function startImport(folderId: string) {
@@ -128,7 +129,7 @@ export function NotesScreen({ path }: ModuleScreenProps) {
     }
     toast.dismiss(id)
     if (count) toast.success(count > 1 ? `${count} notas importadas` : 'Nota importada')
-    if (imported) window.location.assign(`#/notes/${imported.id}`)
+    if (imported) navigate(`#/notes/${imported.id}`)
   }
 
   async function confirmDelete() {
@@ -139,7 +140,7 @@ export function NotesScreen({ path }: ModuleScreenProps) {
     if (!ok) return
     const removedOpen =
       open && (target.kind === 'note' ? target.note.id === open.id : isInside(notes.folders, open.folderId, target.folder.id))
-    if (removedOpen) window.location.assign('#/notes')
+    if (removedOpen) navigate('#/notes')
     if (target.kind === 'folder' && selectedFolder && isInside(notes.folders, selectedFolder, target.folder.id)) {
       setSelectedFolder('')
     }

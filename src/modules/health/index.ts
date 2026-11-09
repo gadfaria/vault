@@ -1,10 +1,11 @@
+import { lazy } from 'react'
 import { HeartPulseIcon } from 'lucide-react'
 import type { VaultModule } from '..'
-import { HealthScreen } from './HealthScreen'
 
 export const health: VaultModule = {
   id: 'health',
   name: 'Saúde',
   icon: HeartPulseIcon,
-  Screen: HealthScreen,
+  // Downloaded on first visit, to keep it out of the first load.
+  Screen: lazy(() => import('./HealthScreen').then((m) => ({ default: m.HealthScreen }))),
 }

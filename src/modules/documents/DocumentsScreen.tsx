@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { navigate } from '@/lib/navigate'
 import { EllipsisVerticalIcon, PaperclipIcon, PlusIcon } from 'lucide-react'
 import { useAuth } from '@/auth/context'
 import { PageBody } from '@/components/app-layout'
@@ -56,7 +57,7 @@ export function DocumentsScreen({ path }: ModuleScreenProps) {
   const selectedId = clickedId ?? routeId
   const setSelectedId = (id: string | null) => {
     setClickedId(id)
-    if (id === null && routeId) window.location.assign('#/documents')
+    if (id === null && routeId) navigate('#/documents')
   }
 
   const visible = owner === ALL ? docs.rows : docs.rows.filter((r) => r.document.owner.trim() === owner)

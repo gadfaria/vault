@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { navigate } from '@/lib/navigate'
 import { CarIcon, PlusIcon } from 'lucide-react'
 import { PageBody } from '@/components/app-layout'
 import { SiteHeader } from '@/components/site-header'
@@ -71,7 +72,7 @@ export function VehiclesScreen({ path }: ModuleScreenProps) {
         onOpenChange={setCreating}
         onSubmit={async (input) => {
           const vehicle = await vehicles.createVehicle(input)
-          if (vehicle) location.hash = `#/vehicles/${vehicle.id}`
+          if (vehicle) navigate(`#/vehicles/${vehicle.id}`)
           return vehicle !== null
         }}
       />

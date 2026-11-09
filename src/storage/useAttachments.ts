@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import type { Attachment } from '@/domain/types'
+import { isInertType, safeObjectUrl } from '@/lib/safe-files'
 import { useVaultContext } from './context'
 
 const DEFAULT_MAX_BYTES = 20 * 1024 * 1024
@@ -8,8 +9,13 @@ const DEFAULT_MAX_BYTES = 20 * 1024 * 1024
 /** Object URLs of downloaded attachments, shared across components for the whole session. */
 const urlCache = new Map<string, Promise<string>>()
 
-/** Upload and trash helpers for files owned by `module`. */
-export function useAttachments(module: string, maxBytes = DEFAULT_MAX_BYTES) {
+const NO_EXTRA_TYPES: string[] = []
+
+/**
+ * Upload and trash helpers for files owned by `module`. Only images and PDFs are accepted,
+ * plus `extraTypes` (a stable array) for modules that never open the file as a page.
+ */
+export function useAttachments(module: string, maxBytes = DEFAULT_MAX_BYTES, extraTypes = NO_EXTRA_TYPES) {
   const { vault, reportError } = useVaultContext()
 
   const upload = useCallback(
@@ -17,6 +23,11 @@ export function useAttachments(module: string, maxBytes = DEFAULT_MAX_BYTES) {
       const tooBig = files.find((f) => f.size > maxBytes)
       if (tooBig) {
         toast.error(`${tooBig.name} passa de ${Math.round(maxBytes / 1024 / 1024)} MB.`)
+        return null
+      }
+      const refused = files.find((f) => !isInertType(f.type) && !extraTypes.includes(f.type))
+      if (refused) {
+        toast.error(`${refused.name} não é um tipo de arquivo aceito.`, { description: 'Use PNG, JPEG, WebP, GIF, HEIC ou PDF.' })
         return null
       }
       try {
@@ -28,7 +39,7 @@ export function useAttachments(module: string, maxBytes = DEFAULT_MAX_BYTES) {
         return null
       }
     },
-    [vault, module, maxBytes, reportError],
+    [vault, module, maxBytes, extraTypes, reportError],
   )
 
   /** Best effort: a file left behind in attachments/ is harmless, so failures are only reported. */
@@ -58,7 +69,7 @@ export function useAttachmentUrl(fileId: string): string | null {
     let cancelled = false
     let pending = urlCache.get(fileId)
     if (!pending) {
-      pending = vault.downloadAttachment(fileId).then((blob) => URL.createObjectURL(blob))
+      pending = vault.downloadAttachment(fileId).then(safeObjectUrl)
       pending.catch(() => urlCache.delete(fileId))
       urlCache.set(fileId, pending)
     }

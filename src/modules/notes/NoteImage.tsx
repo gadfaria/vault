@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { NodeViewWrapper, type ReactNodeViewProps } from '@tiptap/react'
 import { ImageOffIcon, Loader2Icon } from 'lucide-react'
 import { getOffline, setOffline } from '@/lib/offline-store'
+import { safeObjectUrl } from '@/lib/safe-files'
 import { useVaultContext } from '@/storage/context'
 
 /** Images pasted into notes are attachments on Drive, written in Markdown as ![name](attachment:<fileId>). */
@@ -21,7 +22,7 @@ function imageUrl(fileId: string, download: (id: string) => Promise<Blob>): Prom
         blob = await download(fileId)
         void setOffline(imageKey(fileId), blob)
       }
-      return URL.createObjectURL(blob)
+      return safeObjectUrl(blob)
     })()
     url.catch(() => urls.delete(fileId))
     urls.set(fileId, url)

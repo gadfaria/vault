@@ -126,6 +126,24 @@ On the phone, open the site and use **Compartilhar → Adicionar à Tela de Iní
 - **Sign-in in the installed app** uses a full-page redirect to Google instead of the popup (unreliable in standalone mode, especially on iOS). The OAuth client needs `<origin>/` as an **Authorized redirect URI** (e.g. `https://your-domain.com/` and `http://localhost:5180/`). The `state` parameter is checked on return and the token is removed from the address bar.
 - The service worker only registers in production builds; test it with `npm run build && npm run preview`.
 
+## Security
+
+The Drive session lives in the browser, so the app is built to never run code it didn't ship:
+
+- **Headers** (`vercel.json`): a Content-Security-Policy allows scripts only from the app and Google sign-in, connections only to Google's APIs, and forbids embedding the Vault in another site. `npm run preview` sends the same headers, so a production build can be checked locally. A new external origin (a CDN, another API) must be added there.
+- **Attachments** accept only images and PDFs (`src/lib/safe-files.ts`). Anything else already stored is downloaded rather than opened, since a `blob:` page belongs to the app's origin.
+- **EPUBs** are cleaned before they render (`src/modules/reading/sanitize.ts`), and the policy above blocks scripts in them as a second layer.
+
+## Checks
+
+```bash
+npm run lint
+npm run typecheck
+npm test
+```
+
+Tests (Vitest) cover the date, money, schedule and merge logic. GitHub Actions runs lint, tests and the build on every push to `main` and on pull requests.
+
 ## Deploy
 
 Static site (`npm run build` → `dist/`), deployed on Vercel. Set `VITE_GOOGLE_CLIENT_ID` as a **Config** (non-secret) environment variable and redeploy: Vite inlines it at build time. Add the production URL to the OAuth client's authorized origins.

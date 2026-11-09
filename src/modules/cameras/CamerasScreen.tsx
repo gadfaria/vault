@@ -111,6 +111,9 @@ function CameraCard({ camera, onEdit }: { camera: Camera; onEdit: () => void }) 
         <iframe
           src={url}
           title={camera.name}
+          // The player needs scripts and its own cookies (the bridge login), nothing else: no popups, forms or top navigation.
+          sandbox="allow-scripts allow-same-origin"
+          referrerPolicy="no-referrer"
           allow="autoplay; fullscreen; picture-in-picture"
           allowFullScreen
           className="aspect-video w-full rounded-md border bg-black"

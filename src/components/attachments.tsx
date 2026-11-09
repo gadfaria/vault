@@ -3,6 +3,7 @@ import { FileIcon, FileTextIcon, Loader2Icon, PaperclipIcon, XIcon } from "lucid
 import { Button } from "@/components/ui/button"
 import type { Attachment } from "@/domain/types"
 import { formatBytes } from "@/lib/format"
+import { isInertType } from "@/lib/safe-files"
 import { useAttachmentUrl } from "@/storage/useAttachments"
 
 /** Thumbnails for images, a file tile for anything else. Click opens the file in a new tab. */
@@ -53,6 +54,7 @@ function AttachmentTile({
             href={url}
             target="_blank"
             rel="noreferrer"
+            download={isInertType(attachment.mimeType) ? undefined : attachment.name}
             className="absolute inset-0 ring-foreground/20 transition hover:ring-2 hover:ring-inset"
             aria-label={`Abrir ${attachment.name}`}
           />

@@ -44,6 +44,9 @@ launchctl load ~/Library/LaunchAgents/com.vault.go2rtc.plist
 
 On a Raspberry Pi, a systemd unit with the same command does the same.
 
+The log can show the camera address with its password, so the service writes it readable only by
+you (`Umask` in the plist). For a log created before that: `chmod 600 go2rtc.log ptz.log`.
+
 ## 2. Cloudflare Tunnel + Access
 
 In the Cloudflare dashboard (Zero Trust), Access first, so the camera is never public:

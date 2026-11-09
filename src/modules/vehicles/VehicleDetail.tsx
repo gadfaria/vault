@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { navigate } from '@/lib/navigate'
 import { EllipsisVerticalIcon, GaugeIcon, PaperclipIcon, PlusIcon } from 'lucide-react'
 import { PageBody } from '@/components/app-layout'
 import { SiteHeader } from '@/components/site-header'
@@ -228,7 +229,7 @@ export function VehicleDetail({ summary, vehicles }: VehicleDetailProps) {
               variant="destructive"
               onClick={async () => {
                 if (confirm?.kind === 'vehicle') {
-                  if (await vehicles.deleteVehicle(confirm.vehicle)) location.hash = '#/vehicles'
+                  if (await vehicles.deleteVehicle(confirm.vehicle)) navigate('#/vehicles')
                 } else if (confirm?.kind === 'service') {
                   if (await vehicles.deleteService(confirm.service)) setServiceDialog(null)
                 } else if (confirm?.kind === 'policy') {

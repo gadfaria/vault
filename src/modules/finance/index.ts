@@ -1,10 +1,11 @@
+import { lazy } from 'react'
 import { LandmarkIcon } from 'lucide-react'
 import type { VaultModule } from '..'
-import { FinanceScreen } from './FinanceScreen'
 
 export const finance: VaultModule = {
   id: 'finance',
   name: 'Finanças',
   icon: LandmarkIcon,
-  Screen: FinanceScreen,
+  // Downloaded on first visit, to keep it out of the first load.
+  Screen: lazy(() => import('./FinanceScreen').then((m) => ({ default: m.FinanceScreen }))),
 }

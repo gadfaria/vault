@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs'
 import path from 'node:path'
 import tailwindcss from '@tailwindcss/vite'
 import react from '@vitejs/plugin-react'
@@ -20,6 +21,14 @@ function assetList(): Plugin {
   }
 }
 
+/** The security headers Vercel sends (vercel.json), so `npm run preview` behaves like production. */
+function productionHeaders(): Record<string, string> {
+  const config = JSON.parse(readFileSync(path.resolve(import.meta.dirname, 'vercel.json'), 'utf8')) as {
+    headers: { headers: { key: string; value: string }[] }[]
+  }
+  return Object.fromEntries(config.headers.flatMap((rule) => rule.headers).map(({ key, value }) => [key, value]))
+}
+
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [react(), tailwindcss(), assetList()],
@@ -28,9 +37,13 @@ export default defineConfig({
     port: 5180,
     strictPort: true,
   },
+  // Its own port (4173): the preview registers the service worker, which must not take over the dev server's origin.
+  preview: {
+    headers: productionHeaders(),
+  },
   resolve: {
     alias: {
-      '@': path.resolve(__dirname, './src'),
+      '@': path.resolve(import.meta.dirname, './src'),
     },
   },
 })

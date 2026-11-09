@@ -1,4 +1,5 @@
 import { ArrowLeftIcon, PlusIcon } from 'lucide-react'
+import { navigate } from '@/lib/navigate'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Table, TableBody, TableCell, TableFooter, TableHead, TableHeader, TableRow } from '@/components/ui/table'
@@ -99,7 +100,7 @@ export function CardExpenses({ row, onBack, onAdd, onEdit }: CardExpensesProps) 
                 </TableRow>
                 ))}
                 {row.charges.map(({ subscription, date }) => (
-                  <TableRow key={`${subscription.id}-${date}`} className="cursor-pointer" onClick={() => (location.hash = '#/bills/subscriptions')}>
+                  <TableRow key={`${subscription.id}-${date}`} className="cursor-pointer" onClick={() => navigate('#/bills/subscriptions')}>
                     <TableCell className="pl-4 tabular-nums">{formatDate(date, { day: '2-digit', month: '2-digit' })}</TableCell>
                     <TableCell className="max-w-36 sm:max-w-80">
                       <div className="flex flex-col">

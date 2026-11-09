@@ -1,4 +1,5 @@
 import { useState } from "react"
+import { navigate } from "@/lib/navigate"
 import { Loader2Icon } from "lucide-react"
 import {
   Command,
@@ -99,7 +100,7 @@ function SearchPanel({ onNavigate }: { onNavigate: () => void }) {
   for (const item of items) groups.set(item.group, [...(groups.get(item.group) ?? []), item])
 
   function go(href: string) {
-    window.location.assign(href)
+    navigate(href)
     onNavigate()
   }
 

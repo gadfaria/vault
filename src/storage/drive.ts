@@ -36,6 +36,15 @@ const MARKDOWN_MIME = 'text/markdown'
 /** Files up to this size keep the single multipart request; bigger ones (books) use a resumable upload. */
 const MULTIPART_MAX_BYTES = 20 * 1024 * 1024
 
+/** Drive answers errors as { error: { message } }; anything else is shown as it came. */
+function errorMessage(body: string): string {
+  try {
+    return (JSON.parse(body) as { error?: { message?: string } }).error?.message || body
+  } catch {
+    return body
+  }
+}
+
 /** Thin wrapper over the Drive v3 REST API. Only sees files this app created (drive.file scope). */
 export class DriveClient {
   private readonly getToken: () => Promise<string>
@@ -49,7 +58,7 @@ export class DriveClient {
     const headers = new Headers(init.headers)
     headers.set('Authorization', `Bearer ${token}`)
     const res = await fetch(url, { ...init, headers })
-    if (!res.ok) throw new DriveError(res.status, await res.text())
+    if (!res.ok) throw new DriveError(res.status, errorMessage(await res.text()))
     return res
   }
 
@@ -88,26 +97,21 @@ export class DriveClient {
     return res.json()
   }
 
-  async createJson(
-    name: string,
-    parentId: string,
-    data: unknown,
-    appProperties?: Record<string, string>,
-  ): Promise<DriveFile> {
-    const metadata: FileMetadata = { name, mimeType: 'application/json', parents: [parentId], appProperties }
+  /** Creates a file with its metadata and content in one multipart request. */
+  private async createMultipart<T extends DriveFile>(
+    metadata: FileMetadata,
+    contentType: string,
+    content: BlobPart,
+    fields = FILE_FIELDS,
+  ): Promise<T> {
     const boundary = `vault-${crypto.randomUUID()}`
-    const body = [
-      `--${boundary}`,
-      'Content-Type: application/json; charset=UTF-8',
-      '',
-      JSON.stringify(metadata),
-      `--${boundary}`,
-      'Content-Type: application/json; charset=UTF-8',
-      '',
-      JSON.stringify(data),
-      `--${boundary}--`,
-    ].join('\r\n')
-    const res = await this.request(`${UPLOAD}/files?uploadType=multipart&fields=${FILE_FIELDS}`, {
+    const body = new Blob([
+      `--${boundary}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n${JSON.stringify(metadata)}\r\n`,
+      `--${boundary}\r\nContent-Type: ${contentType}\r\n\r\n`,
+      content,
+      `\r\n--${boundary}--`,
+    ])
+    const res = await this.request(`${UPLOAD}/files?uploadType=multipart&fields=${fields}`, {
       method: 'POST',
       headers: { 'Content-Type': `multipart/related; boundary=${boundary}` },
       body,
@@ -115,32 +119,14 @@ export class DriveClient {
     return res.json()
   }
 
-  /** Creates a Markdown file with its content in one multipart request. */
-  async createMarkdown(
-    name: string,
-    parentId: string,
-    text: string,
-    appProperties?: Record<string, string>,
-  ): Promise<DriveFile> {
+  createJson(name: string, parentId: string, data: unknown, appProperties?: Record<string, string>): Promise<DriveFile> {
+    const metadata: FileMetadata = { name, mimeType: 'application/json', parents: [parentId], appProperties }
+    return this.createMultipart(metadata, 'application/json; charset=UTF-8', JSON.stringify(data))
+  }
+
+  createMarkdown(name: string, parentId: string, text: string, appProperties?: Record<string, string>): Promise<DriveFile> {
     const metadata: FileMetadata = { name, mimeType: MARKDOWN_MIME, parents: [parentId], appProperties }
-    const boundary = `vault-${crypto.randomUUID()}`
-    const body = [
-      `--${boundary}`,
-      'Content-Type: application/json; charset=UTF-8',
-      '',
-      JSON.stringify(metadata),
-      `--${boundary}`,
-      `Content-Type: ${MARKDOWN_MIME}; charset=UTF-8`,
-      '',
-      text,
-      `--${boundary}--`,
-    ].join('\r\n')
-    const res = await this.request(`${UPLOAD}/files?uploadType=multipart&fields=${FILE_FIELDS},modifiedTime`, {
-      method: 'POST',
-      headers: { 'Content-Type': `multipart/related; boundary=${boundary}` },
-      body,
-    })
-    return res.json()
+    return this.createMultipart(metadata, `${MARKDOWN_MIME}; charset=UTF-8`, text, `${FILE_FIELDS},modifiedTime`)
   }
 
   /** Replaces a text file's content and returns its new modifiedTime. */
@@ -175,19 +161,7 @@ export class DriveClient {
     const mimeType = file.type || 'application/octet-stream'
     const metadata: FileMetadata = { name: file.name, mimeType, parents: [parentId], appProperties }
     if (file.size > MULTIPART_MAX_BYTES) return this.uploadResumable(file, mimeType, metadata)
-    const boundary = `vault-${crypto.randomUUID()}`
-    const body = new Blob([
-      `--${boundary}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n${JSON.stringify(metadata)}\r\n`,
-      `--${boundary}\r\nContent-Type: ${mimeType}\r\n\r\n`,
-      file,
-      `\r\n--${boundary}--`,
-    ])
-    const res = await this.request(`${UPLOAD}/files?uploadType=multipart&fields=${FILE_FIELDS},size`, {
-      method: 'POST',
-      headers: { 'Content-Type': `multipart/related; boundary=${boundary}` },
-      body,
-    })
-    return res.json()
+    return this.createMultipart(metadata, mimeType, file, `${FILE_FIELDS},size`)
   }
 
   /** Starts an upload session, then sends the whole file to it in one PUT. */

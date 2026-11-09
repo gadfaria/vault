@@ -9,6 +9,8 @@ import { useVaultContext } from '@/storage/context'
 import { BOOK_MAX_BYTES, EPUB_MIME, fileFormat, titleFromFileName, type Book, type BookProgress, type ReadingData } from './types'
 
 const EMPTY: ReadingData = { books: [] }
+/** Books are only ever read by the readers, never opened as a page, so EPUBs are safe to accept. */
+const BOOK_TYPES = [EPUB_MIME]
 
 /**
  * Offline copy of reading.json, tagged with the account so another sign-in never sees it.
@@ -45,7 +47,7 @@ export function useReading() {
   const { vault, reportError } = useVaultContext()
   const owner = useAuth().session?.email ?? ''
   const online = useOnline()
-  const { upload, trash } = useAttachments('reading', BOOK_MAX_BYTES)
+  const { upload, trash } = useAttachments('reading', BOOK_MAX_BYTES, BOOK_TYPES)
   const [data, setData] = useState<ReadingData | null>(null)
   const [settled, setSettled] = useState(false)
   const latest = useRef<CachedIndex>({ owner, data: EMPTY, pending: [] })
@@ -163,8 +165,9 @@ export function useReading() {
       const typed = files.flatMap((file) => {
         const format = fileFormat(file)
         if (!format) return []
-        // Some systems pick .epub files with no type; Drive should still store them as EPUB.
-        const normalized = format === 'epub' && file.type !== EPUB_MIME ? new File([file], file.name, { type: EPUB_MIME }) : file
+        // Some systems pick books with no type; Drive should still store them as PDF or EPUB.
+        const type = format === 'epub' ? EPUB_MIME : 'application/pdf'
+        const normalized = file.type === type ? file : new File([file], file.name, { type })
         return [{ file: normalized, format }]
       })
       if (!typed.length) return false

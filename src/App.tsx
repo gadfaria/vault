@@ -1,11 +1,21 @@
-import { useEffect, useState } from 'react'
+import { Suspense, useEffect, useState } from 'react'
 import { useAuth } from '@/auth/context'
 import { AppLayout } from '@/components/app-layout'
+import { ErrorBoundary } from '@/components/error-boundary'
 import { useOnline } from '@/hooks/use-online'
 import { MODULES } from '@/modules'
 import { useValuesHidden } from '@/lib/privacy'
 import { LoginScreen } from '@/screens/LoginScreen'
 import { VaultProvider } from '@/storage/VaultProvider'
+
+/** A hand-typed hash like "#/%" isn't valid percent-encoding: keep the segment as it is instead of throwing. */
+function decodeSegment(segment: string): string {
+  try {
+    return decodeURIComponent(segment)
+  } catch {
+    return segment
+  }
+}
 
 /** Hash routing (#/finance): works on any static host and keeps the phone's back button. */
 function useRoute(): string[] {
@@ -22,7 +32,7 @@ function useRoute(): string[] {
     .replace(/^#\/?/, '')
     .split('/')
     .filter(Boolean)
-    .map(decodeURIComponent)
+    .map(decodeSegment)
 }
 
 export default function App() {
@@ -41,7 +51,12 @@ export default function App() {
   return (
     <VaultProvider>
       <AppLayout activeId={(active ?? MODULES[0]).id}>
-        <Screen path={active ? path : []} />
+        {/* Keyed by module so a crash (or a screen that failed to download) clears when navigating away. */}
+        <ErrorBoundary key={(active ?? MODULES[0]).id}>
+          <Suspense fallback={null}>
+            <Screen path={active ? path : []} />
+          </Suspense>
+        </ErrorBoundary>
       </AppLayout>
     </VaultProvider>
   )

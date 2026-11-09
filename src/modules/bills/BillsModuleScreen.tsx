@@ -1,4 +1,5 @@
 import type { ModuleScreenProps } from '..'
+import { navigate } from '@/lib/navigate'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { SubscriptionsScreen } from '../subscriptions/SubscriptionsScreen'
 import { BillsScreen } from './BillsScreen'
@@ -17,7 +18,7 @@ export function BillsModuleScreen({ path }: ModuleScreenProps) {
   const section: Section = path[0] === 'subscriptions' || path[0] === 'cards' ? path[0] : path[0] === 'list' ? 'bills' : 'summary'
   const nav = (
     <div className="px-4 lg:px-6">
-      <Tabs value={section} onValueChange={(value) => window.location.assign(SECTIONS[value as Section].href)}>
+      <Tabs value={section} onValueChange={(value) => navigate(SECTIONS[value as Section].href)}>
         <TabsList>
           {Object.entries(SECTIONS).map(([id, { label }]) => (
             <TabsTrigger key={id} value={id}>

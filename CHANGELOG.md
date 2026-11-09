@@ -12,6 +12,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 ### Changed
 - PDFs are read from the device in pieces as pages are shown, instead of being loaded whole into memory.
 - The app keeps every file of the current build available offline (the build lists them in `asset-list.json`), including parts that load on demand like the book reader. Before, those parts were dropped from the offline cache on every page load.
+- Each module's screen is downloaded on first visit, so the app opens with a much smaller first load (the note editor, charts and readers no longer come with it).
+- A problem in one screen shows a message with a Recarregar button instead of a blank page, and a mistyped address no longer breaks the app.
+- Drive errors show Google's message instead of the raw response.
+
+### Security
+- Attachments accept only images (PNG, JPEG, WebP, GIF, AVIF, HEIC) and PDFs. An SVG or HTML file opened from the app could run a script with access to the Drive session; files of other types already stored are now downloaded instead of opened.
+- The site sends a Content-Security-Policy and related headers (`vercel.json`): scripts only from the app itself and Google sign-in, connections only to Google's APIs, and no other site can embed the Vault.
+- EPUB chapters are also cleaned of `<base>` and SVG animation elements, which could turn a link into a script.
+- The camera player runs in a sandboxed frame, and the bridge's logs (which can show the camera address with its password) are readable only by their owner.
 
 ## [0.5.0] - 2026-11-07
 
