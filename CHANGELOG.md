@@ -5,6 +5,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [0.6.0] - 2026-11-09
+
 ### Added
 - Books are downloaded once per device: Leitura keeps each one in the browser's private file storage (up to 1 GB, the least recently opened go first), so it opens right away and offline. Cards show which books are on the device, "Remover do aparelho" frees one, and signing out deletes them all. The library and the reading position work offline too; positions saved offline reach Drive on the next load with a connection.
 - Sync status in Leitura's header, in the library and inside a book: "Sincronizando…" while the library loads from or saves to Drive, "Sincronizado" for a moment after the position reaches Drive, and "Salvo no aparelho" while positions read offline wait for a connection. On phones only the icon shows.
@@ -20,6 +22,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Attachments accept only images (PNG, JPEG, WebP, GIF, AVIF, HEIC) and PDFs. An SVG or HTML file opened from the app could run a script with access to the Drive session; files of other types already stored are now downloaded instead of opened.
 - The site sends a Content-Security-Policy and related headers (`vercel.json`): scripts only from the app itself and Google sign-in, connections only to Google's APIs, and no other site can embed the Vault.
 - EPUB chapters are also cleaned of `<base>` and SVG animation elements, which could turn a link into a script.
+- Signing out revokes the session's token at Google right away instead of leaving it valid for up to an hour. Other devices signed in to the same account are asked to sign in again.
 - The camera player runs in a sandboxed frame, and the bridge's logs (which can show the camera address with its password) are readable only by their owner.
 
 ## [0.5.0] - 2026-11-07

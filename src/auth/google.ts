@@ -4,6 +4,7 @@ const DRIVE_SCOPE = 'https://www.googleapis.com/auth/drive.file'
 const SCOPES = ['openid', 'email', 'profile', DRIVE_SCOPE].join(' ')
 const GIS_SRC = 'https://accounts.google.com/gsi/client'
 const STORAGE_KEY = 'vault.session'
+const REVOKE_URL = 'https://oauth2.googleapis.com/revoke'
 
 export interface Session {
   accessToken: string
@@ -185,6 +186,22 @@ function saveSession(session: Session): void {
   } catch {
     // Storage unavailable (private mode): the session just won't survive a reload.
   }
+}
+
+/**
+ * Asks Google to invalidate the session's token, so a copy of it stops working at sign-out
+ * instead of up to an hour later. This withdraws the app's access for the account: other
+ * devices are asked to sign in again. Best effort: offline, the token just expires on its own.
+ */
+export function revokeSession(session: Session): void {
+  if (isExpired(session)) return
+  // The endpoint sends no CORS headers; a form post needs none, as long as the answer isn't read.
+  void fetch(REVOKE_URL, {
+    method: 'POST',
+    mode: 'no-cors',
+    body: new URLSearchParams({ token: session.accessToken }),
+    keepalive: true,
+  }).catch(() => {})
 }
 
 export function clearSession(): void {

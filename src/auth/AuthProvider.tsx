@@ -7,6 +7,7 @@ import {
   isExpired,
   isStandalone,
   loadSession,
+  revokeSession,
   SessionExpiredError,
   signIn as googleSignIn,
   signInWithRedirect,
@@ -35,6 +36,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [setSession])
 
   const signOut = useCallback(() => {
+    if (sessionRef.current) revokeSession(sessionRef.current)
     clearSession()
     // Offline copies (notes, the reading library, downloaded books) belong to this account: never leave them on the device.
     void clearOffline()

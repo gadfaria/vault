@@ -132,6 +132,7 @@ The Drive session lives in the browser, so the app is built to never run code it
 
 - **Headers** (`vercel.json`): a Content-Security-Policy allows scripts only from the app and Google sign-in, connections only to Google's APIs, and forbids embedding the Vault in another site. `npm run preview` sends the same headers, so a production build can be checked locally. A new external origin (a CDN, another API) must be added there.
 - **Attachments** accept only images and PDFs (`src/lib/safe-files.ts`). Anything else already stored is downloaded rather than opened, since a `blob:` page belongs to the app's origin.
+- **Sign-out** revokes the token at Google (best effort), which also asks the account's other devices to sign in again.
 - **EPUBs** are cleaned before they render (`src/modules/reading/sanitize.ts`), and the policy above blocks scripts in them as a second layer.
 
 ## Checks
