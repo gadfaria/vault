@@ -5,6 +5,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Added
+- **Workout** module (`#/workout`, "Treino"): routines whose exercises have blocks of sets (warm-up, preparatory, work), each with its own count, target reps and rest; a session screen that starts pre-filled with the last loads, ticks each set as done with a rest countdown and saves every change to Drive; a history of finished sessions with duration, sets and volume; and a fixed exercise catalog (in code, 38 exercises) where each one shows how to do it, two looping photos and a chart of its heaviest work set per day.
+
 ## [0.6.0] - 2026-11-09
 
 ### Added

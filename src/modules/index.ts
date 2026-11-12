@@ -10,6 +10,7 @@ import { notes } from './notes'
 import { reading } from './reading'
 import { reminders } from './reminders'
 import { vehicles } from './vehicles'
+import { workout } from './workout'
 
 export interface ModuleScreenProps {
   /** Route segments after the module id: #/vehicles/abc → ['abc'] */
@@ -28,7 +29,7 @@ export interface VaultModule {
  * Every area of the vault, in sidebar order; the first one is the landing page.
  * To add one, create src/modules/<id>/ and register it here.
  */
-export const MODULES: VaultModule[] = [home, reminders, notes, reading, finance, bills, vehicles, documents, health, cameras]
+export const MODULES: VaultModule[] = [home, reminders, notes, reading, finance, bills, vehicles, documents, health, workout, cameras]
 
 /** A page inside a module that keeps its own collection file, e.g. Assinaturas under Contas. */
 export interface SubPage {
