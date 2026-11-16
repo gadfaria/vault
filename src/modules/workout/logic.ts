@@ -1,5 +1,5 @@
 import { addDays, parseDate, toIsoDate } from '@/lib/format'
-import type { Routine, SessionExercise, SetLog, WorkoutSession } from './types'
+import { SET_KINDS, type Routine, type SessionExercise, type SetLog, type WorkoutSession } from './types'
 
 /** 42.5 → "42,5 kg"; 0 → "Peso do corpo" */
 export function formatWeight(kg: number): string {
@@ -25,12 +25,6 @@ export function formatDuration(seconds: number): string {
   const minutes = Math.max(0, Math.round(seconds / 60))
   if (minutes < 60) return `${minutes}min`
   return `${Math.floor(minutes / 60)}h ${String(minutes % 60).padStart(2, '0')}min`
-}
-
-/** 75 → "1:15" */
-export function formatClock(seconds: number): string {
-  const s = Math.max(0, Math.ceil(seconds))
-  return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`
 }
 
 export function doneSets(exercise: SessionExercise): SetLog[] {
@@ -103,6 +97,26 @@ export function buildSessionExercises(routine: Routine, sessions: WorkoutSession
 export function summarizeBlocks(blocks: { sets: number; reps: string }[], unit?: 'seconds'): string {
   const suffix = unit === 'seconds' ? 's' : ''
   return blocks.map((block) => `${block.sets} × ${block.reps ? block.reps + suffix : '—'}`).join(' · ')
+}
+
+/** Consecutive sets with the same kind and target, back as the blocks they were planned in. */
+export function plannedBlocks(sets: SetLog[]): { sets: number; reps: string }[] {
+  const blocks: { kind: string; sets: number; reps: string }[] = []
+  for (const set of sets) {
+    const last = blocks[blocks.length - 1]
+    if (last && last.kind === set.kind && last.reps === set.target) last.sets += 1
+    else blocks.push({ kind: set.kind, sets: 1, reps: set.target })
+  }
+  return blocks
+}
+
+/** How a set is named in a session: "A" for warm-up, "P" for preparatory, the number among work sets. */
+export function setLabel(sets: SetLog[], index: number): { short: string; long: string } {
+  const set = sets[index]
+  if (set.kind === 'warmup') return { short: 'A', long: SET_KINDS.warmup }
+  if (set.kind === 'prep') return { short: 'P', long: SET_KINDS.prep }
+  const number = sets.slice(0, index + 1).filter((s) => s.kind === 'work').length
+  return { short: String(number), long: `Série ${number}` }
 }
 
 /** The sets that count for records and charts: the work sets, or all of them when none is marked as work. */

@@ -25,6 +25,7 @@ import { exerciseName, findExercise } from './exercises'
 import { formatDuration, sessionSeconds, sessionSetCount, sessionsThisWeek, sessionVolume, summarizeBlocks } from './logic'
 import { RoutineFormDialog } from './RoutineFormDialog'
 import { SessionScreen } from './SessionScreen'
+import { SessionView } from './SessionView'
 import type { Routine, RoutineBlock, WorkoutSession } from './types'
 import { useWorkout, type Workout } from './useWorkout'
 
@@ -38,6 +39,8 @@ export function WorkoutScreen({ path }: ModuleScreenProps) {
 
   if (section === 'session' && id) {
     const session = workout.sessions.find((s) => s.id === id)
+    // Finished sessions are read-only; only the one in progress can be changed.
+    if (session?.finishedAt) return <SessionView session={session} workout={workout} />
     if (session) return <SessionScreen key={session.id} session={session} workout={workout} />
     if (workout.loading) return <LoadingPage />
   }

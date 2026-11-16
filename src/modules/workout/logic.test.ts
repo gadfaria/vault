@@ -1,14 +1,15 @@
 import { describe, expect, it } from 'vitest'
 import {
   buildSessionExercises,
-  formatClock,
   formatDuration,
   formatSet,
   lastPerformance,
   parseWeight,
+  plannedBlocks,
   progressSeries,
   sessionsThisWeek,
   sessionVolume,
+  setLabel,
   summarizeBlocks,
   targetReps,
   weekStart,
@@ -57,11 +58,9 @@ describe('parseWeight', () => {
 })
 
 describe('formatting', () => {
-  it('formats durations and clocks', () => {
+  it('formats durations', () => {
     expect(formatDuration(540)).toBe('9min')
     expect(formatDuration(3725)).toBe('1h 02min')
-    expect(formatClock(75)).toBe('1:15')
-    expect(formatClock(-3)).toBe('0:00')
   })
 
   it('formats a set with or without load, and timed ones in seconds', () => {
@@ -140,6 +139,23 @@ describe('buildSessionExercises', () => {
   it('summarizes blocks in one line', () => {
     expect(summarizeBlocks(routine.items[0].blocks)).toBe('1 × 4-6 · 3 × 8-12')
     expect(summarizeBlocks([{ sets: 3, reps: '60' }], 'seconds')).toBe('3 × 60s')
+  })
+})
+
+describe('sets of a session', () => {
+  const sets = [set(0, 10, true, 'warmup', '10-12'), set(20, 5, true, 'prep', '4-6'), set(40, 8, true, 'work', '6-9'), set(40, 7, true, 'work', '6-9')]
+
+  it('names warm-up and prep by letter and numbers the work sets', () => {
+    expect(sets.map((_, i) => setLabel(sets, i).short)).toEqual(['A', 'P', '1', '2'])
+    expect(setLabel(sets, 3).long).toBe('Série 2')
+  })
+
+  it('groups consecutive equal sets back into blocks', () => {
+    expect(plannedBlocks(sets)).toEqual([
+      { kind: 'warmup', sets: 1, reps: '10-12' },
+      { kind: 'prep', sets: 1, reps: '4-6' },
+      { kind: 'work', sets: 2, reps: '6-9' },
+    ])
   })
 })
 

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { CheckIcon, InfoIcon, MinusIcon, PlusIcon, TimerIcon } from 'lucide-react'
+import { CheckIcon, InfoIcon, MinusIcon, PlusIcon } from 'lucide-react'
 import { PageBody } from '@/components/app-layout'
 import { SiteHeader } from '@/components/site-header'
 import {
@@ -21,33 +21,28 @@ import { ExerciseInfoDialog } from './ExerciseInfo'
 import { exerciseName, findExercise, type Exercise } from './exercises'
 import {
   countedSets,
-  formatClock,
   formatDuration,
   formatSet,
   lastPerformance,
   parseWeight,
-  sessionSeconds,
+  plannedBlocks,
   sessionSetCount,
+  setLabel,
   summarizeBlocks,
   targetReps,
 } from './logic'
-import { SET_KINDS, type SessionExercise, type SetLog, type WorkoutSession } from './types'
+import type { SessionExercise, SetLog, WorkoutSession } from './types'
 import type { Workout } from './useWorkout'
 
-/**
- * One session: in progress (sets are ticked as they are done, with a rest timer)
- * or finished (opened from the history, still editable).
- */
+/** The session in progress: sets are ticked as they are done. Finished ones open in SessionView. */
 export function SessionScreen({ session, workout }: { session: WorkoutSession; workout: Workout }) {
   // The screen owns the session while it is open: typing is never overwritten by a save coming back.
   const [draft, setDraft] = useState(session)
   const [unsaved, setUnsaved] = useState(false)
-  const [restEndsAt, setRestEndsAt] = useState<number | null>(null)
-  const [confirm, setConfirm] = useState<'finish' | 'delete' | null>(null)
+  const [confirm, setConfirm] = useState<'finish' | 'discard' | null>(null)
   const [info, setInfo] = useState<Exercise | null>(null)
   const saveSeq = useRef(0)
 
-  const inProgress = !draft.finishedAt
   const done = sessionSetCount(draft)
   const total = draft.exercises.reduce((sum, exercise) => sum + exercise.sets.length, 0)
 
@@ -65,10 +60,6 @@ export function SessionScreen({ session, workout }: { session: WorkoutSession; w
   }
 
   function updateSet(exerciseIndex: number, setIndex: number, next: SetLog) {
-    const before = draft.exercises[exerciseIndex].sets[setIndex]
-    if (inProgress && next.done && !before.done) {
-      setRestEndsAt(next.restSeconds > 0 ? Date.now() + next.restSeconds * 1000 : null)
-    }
     void persist(withExercise(exerciseIndex, (e) => ({ ...e, sets: e.sets.map((s, i) => (i === setIndex ? next : s)) })))
   }
 
@@ -86,7 +77,6 @@ export function SessionScreen({ session, workout }: { session: WorkoutSession; w
   }
 
   async function finish() {
-    setRestEndsAt(null)
     if (await persist({ ...draft, finishedAt: new Date().toISOString() })) navigate('#/workout')
     // Not saved: it stays in progress here too, so the screen matches what Drive has.
     else setDraft((current) => ({ ...current, finishedAt: '' }))
@@ -96,17 +86,13 @@ export function SessionScreen({ session, workout }: { session: WorkoutSession; w
     if (await workout.deleteSession(draft)) navigate('#/workout')
   }
 
-  const seconds = sessionSeconds(draft)
-
   return (
     <>
       <SiteHeader title={[{ label: 'Treino', href: '#/workout' }, { label: draft.routineName }]}>
-        {inProgress && (
-          <Button size="sm" onClick={() => setConfirm('finish')}>
-            <CheckIcon />
-            Finalizar
-          </Button>
-        )}
+        <Button size="sm" onClick={() => setConfirm('finish')}>
+          <CheckIcon />
+          Finalizar
+        </Button>
       </SiteHeader>
 
       <PageBody>
@@ -114,14 +100,14 @@ export function SessionScreen({ session, workout }: { session: WorkoutSession; w
           <p className="text-sm text-muted-foreground">
             {formatDate(draft.date, { weekday: 'long', day: 'numeric', month: 'long' })}
             {' · '}
-            {inProgress ? <Elapsed since={draft.startedAt} /> : seconds !== null && formatDuration(seconds)}
+            <Elapsed since={draft.startedAt} />
             {' · '}
             <span className="tabular-nums">
               {done}/{total} séries
             </span>
           </p>
-          <Button variant="ghost" size="sm" className="text-muted-foreground" onClick={() => setConfirm('delete')}>
-            {inProgress ? 'Descartar' : 'Excluir'}
+          <Button variant="ghost" size="sm" className="text-muted-foreground" onClick={() => setConfirm('discard')}>
+            Descartar
           </Button>
         </div>
 
@@ -191,14 +177,6 @@ export function SessionScreen({ session, workout }: { session: WorkoutSession; w
             )
           })}
         </div>
-
-        {restEndsAt !== null && (
-          <RestBar
-            endsAt={restEndsAt}
-            onExtend={() => setRestEndsAt((endsAt) => (endsAt ?? Date.now()) + 15_000)}
-            onDone={() => setRestEndsAt(null)}
-          />
-        )}
       </PageBody>
 
       <ExerciseInfoDialog exercise={info} onClose={() => setInfo(null)} />
@@ -207,14 +185,14 @@ export function SessionScreen({ session, workout }: { session: WorkoutSession; w
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>
-              {confirm === 'finish' ? 'Finalizar treino?' : inProgress ? 'Descartar treino?' : 'Excluir treino?'}
+              {confirm === 'finish' ? 'Finalizar treino?' : 'Descartar treino?'}
             </AlertDialogTitle>
             <AlertDialogDescription>
               {confirm === 'finish'
                 ? done === total
                   ? `Todas as ${total} séries foram feitas.`
                   : `${done} de ${total} séries feitas. As não marcadas ficam fora do histórico.`
-                : `${draft.routineName} de ${formatDate(draft.date)} será removido do histórico.`}
+                : `${draft.routineName} de ${formatDate(draft.date)} não entra no histórico.`}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -223,7 +201,7 @@ export function SessionScreen({ session, workout }: { session: WorkoutSession; w
               <AlertDialogAction onClick={() => void finish()}>Finalizar</AlertDialogAction>
             ) : (
               <AlertDialogAction variant="destructive" onClick={() => void remove()}>
-                {inProgress ? 'Descartar' : 'Excluir'}
+                Descartar
               </AlertDialogAction>
             )}
           </AlertDialogFooter>
@@ -231,26 +209,6 @@ export function SessionScreen({ session, workout }: { session: WorkoutSession; w
       </AlertDialog>
     </>
   )
-}
-
-/** Consecutive sets with the same kind and target, back as the blocks they were planned in. */
-function plannedBlocks(sets: SetLog[]): { sets: number; reps: string }[] {
-  const blocks: { kind: string; sets: number; reps: string }[] = []
-  for (const set of sets) {
-    const last = blocks[blocks.length - 1]
-    if (last && last.kind === set.kind && last.reps === set.target) last.sets += 1
-    else blocks.push({ kind: set.kind, sets: 1, reps: set.target })
-  }
-  return blocks
-}
-
-/** What the row shows before the inputs: "A" for warm-up, "P" for preparatory, the number among work sets. */
-function setLabel(sets: SetLog[], index: number): { short: string; long: string } {
-  const set = sets[index]
-  if (set.kind === 'warmup') return { short: 'A', long: SET_KINDS.warmup }
-  if (set.kind === 'prep') return { short: 'P', long: SET_KINDS.prep }
-  const number = sets.slice(0, index + 1).filter((s) => s.kind === 'work').length
-  return { short: String(number), long: `Série ${number}` }
 }
 
 /** One set: load and reps are committed on blur, the button ticks it as done (committing what is typed). */
@@ -335,39 +293,4 @@ function Elapsed({ since }: { since: string }) {
     return () => clearInterval(timer)
   }, [])
   return <>{formatDuration((now - new Date(since).getTime()) / 1000)}</>
-}
-
-/** Countdown stuck to the bottom of the page. It follows the clock, so it stays right after the tab sleeps. */
-function RestBar({ endsAt, onExtend, onDone }: { endsAt: number; onExtend: () => void; onDone: () => void }) {
-  const [now, setNow] = useState(() => Date.now())
-  const remaining = (endsAt - now) / 1000
-
-  useEffect(() => {
-    const timer = setInterval(() => setNow(Date.now()), 250)
-    return () => clearInterval(timer)
-  }, [])
-
-  useEffect(() => {
-    if (remaining > 0) return
-    navigator.vibrate?.([200, 100, 200])
-    onDone()
-  }, [remaining, onDone])
-
-  return (
-    <div className="sticky bottom-0 z-40 mt-auto flex justify-center px-4 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
-      <div className="flex w-full max-w-md items-center gap-3 rounded-xl border bg-background px-4 py-2.5 shadow-lg">
-        <TimerIcon className="size-5 text-muted-foreground" />
-        <span className="text-sm text-muted-foreground">Descanso</span>
-        <span className="text-xl font-semibold tabular-nums">{formatClock(remaining)}</span>
-        <div className="ml-auto flex gap-2">
-          <Button variant="outline" size="sm" onClick={onExtend}>
-            +15s
-          </Button>
-          <Button size="sm" onClick={onDone}>
-            Pular
-          </Button>
-        </div>
-      </div>
-    </div>
-  )
 }
