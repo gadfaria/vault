@@ -139,9 +139,24 @@ export function useBills() {
     [paymentFor],
   )
 
+  /** On a new bill, `paid` also records its first due month as paid today, at the estimate. */
   const saveBill = useCallback(
-    (input: BillInput, existing?: Bill) =>
-      save({ bills: [existing ? touch(existing, input) : { ...newSyncable(), ...input }] }),
+    (input: BillInput, existing?: Bill, paid = false) => {
+      if (existing) return save({ bills: [touch(existing, input)] })
+      const bill: Bill = { ...newSyncable(), ...input }
+      if (!paid) return save({ bills: [bill] })
+      const payment: BillPayment = {
+        ...newSyncable(),
+        billId: bill.id,
+        month: bill.startMonth,
+        amount: bill.estimate,
+        dueDate: dayOfMonth(bill.startMonth, bill.dueDay),
+        paidAt: today(),
+        notes: '',
+        attachments: [],
+      }
+      return save({ bills: [bill], payments: [payment] })
+    },
     [save],
   )
 

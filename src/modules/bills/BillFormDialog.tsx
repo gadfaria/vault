@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from 'react'
 import { Field } from '@/components/form-field'
 import { Button } from '@/components/ui/button'
+import { Checkbox } from '@/components/ui/checkbox'
 import {
   Dialog,
   DialogContent,
@@ -10,6 +11,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
 import { currentMonth, formatMoneyInput, parseMoney } from '@/lib/format'
@@ -30,7 +32,8 @@ interface BillFormDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   bill?: Bill
-  onSubmit: (input: BillInput) => Promise<boolean>
+  /** `paid` is only offered on new bills */
+  onSubmit: (input: BillInput, paid: boolean) => Promise<boolean>
   onDelete?: (bill: Bill) => void
 }
 
@@ -53,6 +56,7 @@ function BillForm({ bill, onSubmit, onOpenChange, onDelete }: BillFormDialogProp
   const [estimate, setEstimate] = useState(bill?.estimate ? formatMoneyInput(bill.estimate) : '')
   const [startMonth, setStartMonth] = useState(bill?.startMonth ?? currentMonth())
   const [notes, setNotes] = useState(bill?.notes ?? '')
+  const [paid, setPaid] = useState(false)
   const [pending, setPending] = useState(false)
 
   const day = Math.round(Number(dueDay))
@@ -73,7 +77,7 @@ function BillForm({ bill, onSubmit, onOpenChange, onDelete }: BillFormDialogProp
       // A one-off bill ends in its own month; turning it into a recurring one reopens it.
       endMonth: frequency === 'once' ? startMonth : bill && billFrequency(bill) !== 'once' ? bill.endMonth : '',
       notes: notes.trim(),
-    })
+    }, !bill && paid)
     setPending(false)
     if (ok) onOpenChange(false)
   }
@@ -181,6 +185,17 @@ function BillForm({ bill, onSubmit, onOpenChange, onDelete }: BillFormDialogProp
             placeholder="Ex.: número da instalação, código do cliente"
           />
         </Field>
+        {!bill && (
+          <div className="col-span-2 flex items-center gap-3">
+            <Checkbox id="bill-paid" checked={paid} onCheckedChange={(v) => setPaid(v === true)} />
+            <Label htmlFor="bill-paid">Criar como paga</Label>
+            {paid && (
+              <span className="text-muted-foreground ml-auto text-xs">
+                {frequency === 'once' ? 'Marca como paga hoje, pelo valor estimado' : 'Marca o primeiro vencimento como pago hoje, pelo valor estimado'}
+              </span>
+            )}
+          </div>
+        )}
       </div>
 
       <DialogFooter className="sm:justify-between">

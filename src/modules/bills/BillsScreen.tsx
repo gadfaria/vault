@@ -194,7 +194,7 @@ export function BillsScreen({ nav, view = 'bills' }: { nav?: React.ReactNode; vi
         open={billDialog !== null && confirm === null}
         onOpenChange={(open) => !open && setBillDialog(null)}
         bill={billDialog?.bill}
-        onSubmit={(input) => bills.saveBill(input, billDialog?.bill)}
+        onSubmit={(input, paid) => bills.saveBill(input, billDialog?.bill, paid)}
         onDelete={(bill) => setConfirm({ kind: 'delete', bill })}
       />
       <CardFormDialog
