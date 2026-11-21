@@ -145,6 +145,9 @@
   .note-content h3 {
     @apply mt-6 text-lg font-semibold;
   }
+  .note-content :is(h1, h2, h3, h4, h5, h6) {
+    @apply scroll-mt-20;
+  }
   .note-content > :first-child {
     @apply mt-0;
   }

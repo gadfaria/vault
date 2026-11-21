@@ -44,6 +44,36 @@ const TableShortcut = Extension.create({
 /** Plain text that is clearly Markdown is pasted as formatted content instead of literal symbols. */
 const MARKDOWN_HINT = /^(#{1,6}\s|\s*[-*+]\s|\s*\d+\.\s|>\s|```|\|.*\|\s*$)|\*\*[^*]+\*\*|\[[^\]]+\]\([^)]+\)/m
 
+/** GitHub-style heading anchor: "1. Visão geral (RTH)" → "1-visão-geral-rth". */
+function headingSlug(text: string): string {
+  return text
+    .trim()
+    .toLowerCase()
+    .replace(/[^\p{L}\p{N}\s_-]/gu, '')
+    .replace(/\s/g, '-')
+}
+
+/** Scrolls to the heading a "#section" link points to; true when the click was such a link. */
+function followAnchor(root: HTMLElement, event: MouseEvent): boolean {
+  const link = (event.target as Element | null)?.closest('a')
+  const href = link?.getAttribute('href')
+  // "#/…" is an app route, not a section of the note.
+  if (!link || !href?.startsWith('#') || href.startsWith('#/') || !root.contains(link)) return false
+  // The app routes with the hash, so the link must never reach the browser.
+  event.preventDefault()
+  let target = href.slice(1)
+  try {
+    target = decodeURIComponent(target)
+  } catch {
+    // Keep it as written.
+  }
+  const heading = [...root.querySelectorAll('h1, h2, h3, h4, h5, h6')].find(
+    (h) => headingSlug(h.textContent ?? '') === target.toLowerCase(),
+  )
+  heading?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  return true
+}
+
 interface NoteEditorProps {
   note: Note
   readOnly: boolean
@@ -202,6 +232,9 @@ function EditorBody({ note, readOnly, loadContent, saveContent, onRename, initia
     onUpdate: ({ editor }) => scheduleRef.current(editor),
     editorProps: {
       attributes: { class: 'note-content min-h-[50svh] outline-none' },
+      handleDOMEvents: {
+        click: (view, event) => followAnchor(view.dom, event),
+      },
       handlePaste: (_view, event) => {
         const files = [...(event.clipboardData?.files ?? [])]
         if (files.some((f) => f.type.startsWith('image/'))) {
