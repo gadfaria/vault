@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { CheckCircle2Icon, CheckIcon, ChevronLeftIcon, ChevronRightIcon } from 'lucide-react'
+import { CheckIcon, ChevronLeftIcon, ChevronRightIcon } from 'lucide-react'
 import { useAuth } from '@/auth/context'
 import { PageBody } from '@/components/app-layout'
 import { SiteHeader } from '@/components/site-header'
@@ -17,7 +17,7 @@ import { useSubscriptions } from '@/modules/subscriptions/useSubscriptions'
 import { useVehicles } from '@/modules/vehicles/useVehicles'
 import { reminderColor } from '@/modules/reminders/types'
 import { collectCalendar, itemsOn, monthGrid, monthsBetween, weekSpans, type CalendarItem, type WeekSpan } from './calendar'
-import { AGENDA_DAYS, byUrgency, collectEvents, type HomeEvent, type Severity } from './events'
+import { AGENDA_DAYS, collectEvents, type HomeEvent, type Severity } from './events'
 
 function greeting(): string {
   const hour = new Date().getHours()
@@ -66,7 +66,6 @@ export function HomeScreen() {
         completeReminder: reminderDialogs.complete,
       })
 
-  const attention = events.filter((e) => e.attention).sort(byUrgency)
   const now = today()
   const agenda = events.filter((e) => e.date >= now && daysUntil(e.date) <= AGENDA_DAYS).sort((a, b) => a.date.localeCompare(b.date))
 
@@ -122,7 +121,6 @@ export function HomeScreen() {
               if (day.slice(0, 7) !== shownMonth) setShownMonth(day.slice(0, 7))
             }}
             onMonth={showMonth}
-            attention={attention}
             agenda={agenda}
             onOpenReminder={(reminderId, date, done) => reminderDialogs.showDetails({ reminderId, date, done })}
           />
@@ -147,34 +145,6 @@ function openLink(item: { reminderId?: string; date: string; done?: boolean }, o
     e.preventDefault()
     onOpen(item.reminderId, item.date, item.done)
   }
-}
-
-function EventRow({ event, trailing, onOpen }: { event: HomeEvent; trailing?: string; onOpen: OpenReminder }) {
-  const Icon = event.icon
-  return (
-    <li className="flex items-center gap-1 py-2.5 first:pt-0">
-      <a href={event.href} onClick={openLink(event, onOpen)} className="group flex min-w-0 flex-1 items-center gap-3">
-        <span className="relative flex size-8 shrink-0 items-center justify-center rounded-md border">
-          <Icon className="size-4 text-muted-foreground" />
-          <span className={`absolute -top-0.5 -right-0.5 size-2 rounded-full ${DOT[event.severity]}`} />
-        </span>
-        <span className="flex min-w-0 flex-1 flex-col">
-          <span className={`truncate text-sm font-medium ${event.severity === 'danger' ? 'text-destructive' : ''}`}>
-            {event.title}
-          </span>
-          <span className="truncate text-xs text-muted-foreground">{event.detail}</span>
-        </span>
-        {trailing && <span className="shrink-0 text-xs text-muted-foreground">{trailing}</span>}
-        <ChevronRightIcon className="size-4 shrink-0 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100" />
-      </a>
-      {event.onComplete && (
-        <Button variant="ghost" size="icon" className="size-8 shrink-0 text-muted-foreground" onClick={event.onComplete}>
-          <CheckIcon />
-          <span className="sr-only">Concluir</span>
-        </Button>
-      )}
-    </li>
-  )
 }
 
 function Agenda({ events, onOpen }: { events: HomeEvent[]; onOpen: OpenReminder }) {
@@ -344,7 +314,6 @@ function CalendarCard({
   selected,
   onSelect,
   onMonth,
-  attention,
   agenda,
   onOpenReminder,
 }: {
@@ -355,7 +324,6 @@ function CalendarCard({
   selected: string
   onSelect: (day: string) => void
   onMonth: (month: string) => void
-  attention: HomeEvent[]
   agenda: HomeEvent[]
   onOpenReminder: OpenReminder
 }) {
@@ -424,24 +392,6 @@ function CalendarCard({
         {/* Wide screens: as tall as the calendar and scrolls inside; phones: below it, full length. */}
         <div className="relative min-w-0">
           <div className="flex flex-col gap-6 @4xl/main:absolute @4xl/main:inset-0 @4xl/main:overflow-y-auto @4xl/main:pr-1">
-            <section className="flex flex-col gap-2">
-              <h3 className="text-sm font-medium">Precisa de atenção</h3>
-              {loading ? (
-                <Skeleton className="h-16 w-full" />
-              ) : attention.length === 0 ? (
-                <p className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <CheckCircle2Icon className="size-4" />
-                  Nada pendente. Tudo em dia.
-                </p>
-              ) : (
-                <ul className="flex flex-col divide-y">
-                  {attention.map((event) => (
-                    <EventRow key={event.id} event={event} trailing={relativeDay(event.date)} onOpen={onOpenReminder} />
-                  ))}
-                </ul>
-              )}
-            </section>
-
             <section className="flex flex-col gap-2">
               <div className="flex items-baseline justify-between gap-2">
                 <h3 className="text-sm font-medium first-letter:uppercase">

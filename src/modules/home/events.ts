@@ -27,8 +27,6 @@ export interface HomeEvent {
   /** Short trailing info for the agenda (amount, person…) */
   meta: string
   href: string
-  /** Shown in "Precisa de atenção" (otherwise only in the agenda) */
-  attention: boolean
   /** Marks it done right from the list (reminders) */
   onComplete?: () => void
   /** Reminders only: the color picked for the calendar */
@@ -72,24 +70,22 @@ export function collectEvents(sources: EventSources): HomeEvent[] {
       detail: `${row.status === 'overdue' ? 'Venceu' : 'Vence'} em ${formatDate(row.dueDate)}${amount}`,
       meta: row.amount ? formatMoney(row.amount) : '',
       href: billHref(row.bill),
-      attention: row.status === 'overdue' || days <= SOON_DAYS,
     })
   }
 
   for (const row of sources.reminders) {
     const days = daysUntil(row.due)
     if (days > AGENDA_DAYS) continue
-    const attention = days <= row.reminder.leadDays
+    const soon = days <= row.reminder.leadDays
     events.push({
       id: `reminder-${row.reminder.id}-${row.date}`,
       icon: BellIcon,
-      severity: row.status === 'overdue' ? 'danger' : row.status === 'today' || attention ? 'warning' : 'info',
+      severity: row.status === 'overdue' ? 'danger' : row.status === 'today' || soon ? 'warning' : 'info',
       date: row.due,
       title: `${row.status === 'overdue' ? 'Lembrete atrasado' : 'Lembrete'}: ${row.reminder.title}`,
       detail: scheduleLabel(row.reminder),
       meta: '',
       href: '#/reminders',
-      attention,
       onComplete: () => sources.completeReminder(row),
       color: row.reminder.color,
       reminderId: row.reminder.id,
@@ -107,7 +103,6 @@ export function collectEvents(sources: EventSources): HomeEvent[] {
       detail: `${formatMoney(subscription.amount)}${subscription.paymentMethod ? ` · ${subscription.paymentMethod}` : ''}`,
       meta: formatMoney(subscription.amount),
       href: '#/bills/subscriptions',
-      attention: false,
     })
   }
 
@@ -123,7 +118,6 @@ export function collectEvents(sources: EventSources): HomeEvent[] {
       detail: `${status.kind === 'expired' ? 'Venceu' : 'Vence'} em ${formatDate(document.expiryDate)}`,
       meta: document.owner,
       href: '#/documents',
-      attention: true,
     })
   }
 
@@ -140,7 +134,6 @@ export function collectEvents(sources: EventSources): HomeEvent[] {
       detail: `${currentPolicy.insurer} · ${status.kind === 'expired' ? 'venceu' : 'vence'} em ${formatDate(currentPolicy.endDate)}`,
       meta: currentPolicy.insurer,
       href: `#/vehicles/${vehicle.id}`,
-      attention: true,
     })
   }
 
@@ -157,7 +150,6 @@ export function collectEvents(sources: EventSources): HomeEvent[] {
         detail: [person, entry.provider].filter(Boolean).join(' · '),
         meta: person,
         href: '#/health',
-        attention: days <= SOON_DAYS,
       })
     }
   }
@@ -175,7 +167,6 @@ export function collectEvents(sources: EventSources): HomeEvent[] {
       detail: `${investment.institution} · ${formatMoney(investment.amount)} · ${days < 0 ? 'venceu' : 'vence'} em ${formatDate(investment.maturity)}`,
       meta: formatMoney(investment.amount),
       href: '#/finance',
-      attention: days <= SOON_DAYS,
     })
   }
 
@@ -189,16 +180,8 @@ export function collectEvents(sources: EventSources): HomeEvent[] {
       detail: `Última atualização em ${formatDate(sources.balancesUpdatedAt)}`,
       meta: '',
       href: '#/finance',
-      attention: true,
     })
   }
 
   return events
-}
-
-const SEVERITY_ORDER: Record<Severity, number> = { danger: 0, warning: 1, info: 2 }
-
-/** Most urgent first: severity, then date. */
-export function byUrgency(a: HomeEvent, b: HomeEvent): number {
-  return SEVERITY_ORDER[a.severity] - SEVERITY_ORDER[b.severity] || a.date.localeCompare(b.date)
 }

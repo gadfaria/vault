@@ -15,7 +15,7 @@ export type ReminderFrequency = keyof typeof FREQUENCIES
 /** Sunday first, matching Date.getDay(). */
 export const WEEKDAYS = ['dom', 'seg', 'ter', 'qua', 'qui', 'sex', 'sáb'] as const
 
-/** How far ahead a reminder starts asking for attention, in days. */
+/** How far ahead a reminder is highlighted on the home calendar, in days. */
 export const LEAD_OPTIONS = {
   0: 'No dia',
   1: '1 dia antes',
@@ -64,7 +64,7 @@ export interface Reminder extends Syncable {
   endDate?: string
   /** Color on the calendar, empty for none (also missing on reminders saved before it existed) */
   color?: ReminderColor | ''
-  /** Shown in "Precisa de atenção" from this many days before */
+  /** Highlighted on the home calendar from this many days before */
   leadDays: number
   /** YYYY-MM-DD when it was ended, empty while active */
   endedAt: string
