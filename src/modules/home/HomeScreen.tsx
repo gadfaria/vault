@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { CheckIcon, ChevronLeftIcon, ChevronRightIcon } from 'lucide-react'
+import { CheckIcon, ChevronLeftIcon, ChevronRightIcon, PlusIcon } from 'lucide-react'
 import { useAuth } from '@/auth/context'
 import { PageBody } from '@/components/app-layout'
 import { SiteHeader } from '@/components/site-header'
@@ -123,6 +123,7 @@ export function HomeScreen() {
             onMonth={showMonth}
             agenda={agenda}
             onOpenReminder={(reminderId, date, done) => reminderDialogs.showDetails({ reminderId, date, done })}
+            onNewReminder={reminderDialogs.create}
           />
         </div>
 
@@ -316,6 +317,7 @@ function CalendarCard({
   onMonth,
   agenda,
   onOpenReminder,
+  onNewReminder,
 }: {
   loading: boolean
   month: string
@@ -326,6 +328,7 @@ function CalendarCard({
   onMonth: (month: string) => void
   agenda: HomeEvent[]
   onOpenReminder: OpenReminder
+  onNewReminder: (date: string) => void
 }) {
   const dayItems = itemsOn(items, selected)
   const weeks = Array.from({ length: grid.length / 7 }, (_, i) => grid.slice(i * 7, i * 7 + 7))
@@ -429,6 +432,12 @@ function CalendarCard({
                     </li>
                   ))}
                 </ul>
+              )}
+              {!loading && (
+                <Button variant="outline" size="sm" className="w-full border-dashed text-muted-foreground" onClick={() => onNewReminder(selected)}>
+                  <PlusIcon />
+                  Novo lembrete neste dia
+                </Button>
               )}
             </section>
 

@@ -22,6 +22,8 @@ interface ReminderFormDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   reminder?: Reminder
+  /** YYYY-MM-DD a new reminder starts on, today when not given */
+  date?: string
   onSubmit: (input: ReminderInput) => Promise<boolean>
   onDelete?: (reminder: Reminder) => void
 }
@@ -36,10 +38,10 @@ export function ReminderFormDialog(props: ReminderFormDialogProps) {
   )
 }
 
-function ReminderForm({ reminder, onSubmit, onOpenChange, onDelete }: ReminderFormDialogProps) {
+function ReminderForm({ reminder, date, onSubmit, onOpenChange, onDelete }: ReminderFormDialogProps) {
   const [title, setTitle] = useState(reminder?.title ?? '')
   const [frequency, setFrequency] = useState<ReminderFrequency>(reminder?.frequency ?? 'once')
-  const [startDate, setStartDate] = useState(reminder?.startDate ?? today())
+  const [startDate, setStartDate] = useState(reminder?.startDate ?? date ?? today())
   const [endDate, setEndDate] = useState(reminder?.endDate ?? '')
   const [every, setEvery] = useState(String(reminder?.interval ?? 1))
   const [weekdays, setWeekdays] = useState<number[]>(reminder?.weekdays ?? [])

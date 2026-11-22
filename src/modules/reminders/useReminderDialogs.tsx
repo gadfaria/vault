@@ -23,7 +23,7 @@ export function useReminderDialogs(reminders: ReturnType<typeof useReminders>) {
   const [details, setDetails] = useState<Details | null>(null)
   // Kept apart from `details` so the content stays on screen while the dialog animates out.
   const [detailsOpen, setDetailsOpen] = useState(false)
-  const [form, setForm] = useState<{ reminder?: Reminder } | null>(null)
+  const [form, setForm] = useState<{ reminder?: Reminder; date?: string } | null>(null)
   const [confirm, setConfirm] = useState<Confirm | null>(null)
 
   async function complete(row: ReminderRow) {
@@ -39,6 +39,12 @@ export function useReminderDialogs(reminders: ReturnType<typeof useReminders>) {
   function edit(reminder?: Reminder) {
     setDetailsOpen(false)
     setForm({ reminder })
+  }
+
+  /** Opens the form for a new reminder starting on `date` (YYYY-MM-DD). */
+  function create(date: string) {
+    setDetailsOpen(false)
+    setForm({ date })
   }
 
   // Looked up on every render, so the dialog follows what gets saved.
@@ -61,6 +67,7 @@ export function useReminderDialogs(reminders: ReturnType<typeof useReminders>) {
         open={form !== null && confirm === null}
         onOpenChange={(open) => !open && setForm(null)}
         reminder={form?.reminder}
+        date={form?.date}
         onSubmit={(input) => reminders.saveReminder(input, form?.reminder)}
         onDelete={(reminder) => setConfirm({ kind: 'delete', reminder })}
       />
@@ -95,5 +102,5 @@ export function useReminderDialogs(reminders: ReturnType<typeof useReminders>) {
     </>
   )
 
-  return { dialogs, complete, edit, showDetails, askToEnd: (reminder: Reminder) => setConfirm({ kind: 'end', reminder }), askToDelete: (reminder: Reminder) => setConfirm({ kind: 'delete', reminder }) }
+  return { dialogs, complete, edit, create, showDetails, askToEnd: (reminder: Reminder) => setConfirm({ kind: 'end', reminder }), askToDelete: (reminder: Reminder) => setConfirm({ kind: 'delete', reminder }) }
 }
